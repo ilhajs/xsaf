@@ -2,7 +2,7 @@
 
 ## Run the server
 
-From `templates/tui`:
+From `templates/nitro`:
 
 ```sh
 cp .env.example .env
