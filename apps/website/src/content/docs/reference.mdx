@@ -5,15 +5,14 @@ sidebar:
   order: 5
 ---
 
-Import these contracts from `@xsaf/agent`. They are structural: custom drivers implement the interfaces directly without extending an XSAF base class.
+Import stable agent configuration and result types from `@xsaf/agent`. Import driver-authoring contracts from `@xsaf/agent/types`. They are structural: custom drivers implement the interfaces directly without extending an XSAF base class.
 
-For the fluent builder surface, start with the [`xsaf` API reference](/xsaf).
+For the fluent agent surface, start with the [`xsaf` API reference](/xsaf).
 
 ## Configuration
 
 ```ts
 interface ServeConfig {
-  transport: "http";
   path?: string;
   name?: string;
   version?: string;
@@ -118,7 +117,7 @@ type ChannelTarget = string | Readonly<Record<string, unknown>>;
 type ChannelPayload = string | AsyncIterable<string> | { text: string; meta?: unknown };
 ```
 
-`ChannelContext` includes the shared Hono app, an inbound dispatch function, and a compatibility message registration hook.
+`ChannelContext` includes the shared Hono app, an inbound `dispatch(message)` function, and event emission.
 
 ### Sandbox
 
@@ -171,10 +170,10 @@ Driver methods may close external resources, so start them only from lifecycle h
 
 ## Events
 
-Register typed handlers while configuring the builder:
+Register typed handlers while configuring the agent:
 
 ```ts
-builder.on("tool.failed", (event) => {
+agent.on("tool.failed", (event) => {
   console.error(event.tool, event.sessionId);
 });
 ```
@@ -198,7 +197,7 @@ Handlers can be synchronous or asynchronous. Event failures are isolated so they
 | `sandbox.escalated`   | `sandbox`, `tool`            |
 | `sandbox.denied`      | `sandbox`, `tool`, `reason`  |
 
-`sandbox.escalated` and `sandbox.denied` are public event variants for sandbox integrations. The bundled local and host adapters do not emit them.
+`sandbox.escalated` and `sandbox.denied` are public event variants for sandbox integrations. The bundled local adapter does not emit them.
 
 ```ts
 type EventType = XsafEvent["type"];
@@ -212,7 +211,7 @@ A schedule emits `heartbeat.fired` before running. Success emits `heartbeat.comp
 
 ## See also
 
-- [Builder and lifecycle](/xsaf)
+- [Agent lifecycle](/xsaf/start)
 - [Tools & Security](/recipes/tools)
 - [MCP](/xsaf/mcp)
 - [Delegation](/xsaf/delegate)

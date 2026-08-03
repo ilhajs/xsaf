@@ -96,7 +96,7 @@ export function parseCron(expression: string): ParsedCron {
   };
 }
 
-export class CronScheduler implements XsafSchedulerDriver {
+class CronScheduler implements XsafSchedulerDriver {
   async schedule(config: ScheduleConfig, run: () => Promise<void>): Promise<ScheduledTask> {
     const cron = parseCron(config.cron);
     const timezone = config.timezone ?? "UTC";
@@ -129,4 +129,8 @@ export class CronScheduler implements XsafSchedulerDriver {
       },
     };
   }
+}
+
+export function cron(): XsafSchedulerDriver {
+  return new CronScheduler();
 }

@@ -11,7 +11,7 @@ export interface MockSentMessage {
   readonly payload: ChannelPayload;
 }
 
-export class MockChannel implements XsafChannelDriver {
+class MockChannel implements XsafChannelDriver {
   readonly name: string;
   readonly sent: MockSentMessage[] = [];
   #context: ChannelContext | undefined;

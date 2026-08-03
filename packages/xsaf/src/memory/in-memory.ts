@@ -1,6 +1,6 @@
 import type { Message, XsafMemoryDriver } from "../types";
 
-export class InMemoryMemory implements XsafMemoryDriver {
+class InMemoryMemory implements XsafMemoryDriver {
   readonly #sessions = new Map<string, Message[]>();
 
   async get(sessionId: string): Promise<Message[]> {

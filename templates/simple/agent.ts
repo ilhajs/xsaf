@@ -14,15 +14,12 @@ const channel = mockChannel();
 
 const builder = xsaf
   .agent({
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model,
     persona: "You are a deterministic test agent.",
     stream: false,
-    modelAdapter: model,
   })
   .channel(channel)
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
 await builder.start();
 

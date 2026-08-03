@@ -14,14 +14,11 @@ const builder = xsaf
   .agent({
     name: "xsaf",
     description: "A deterministic interactive example agent.",
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model,
     persona: "You are a deterministic test agent.",
     stream: false,
-    modelAdapter: model,
   })
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
 await builder.start();
 

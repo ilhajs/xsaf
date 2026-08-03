@@ -40,17 +40,29 @@
       "types": "./dist/model/mock.d.mts",
       "import": "./dist/model/mock.mjs"
     },
+    "./model/xsai": {
+      "types": "./dist/model/xsai.d.mts",
+      "import": "./dist/model/xsai.mjs"
+    },
+    "./memory/in-memory": {
+      "types": "./dist/memory/in-memory.d.mts",
+      "import": "./dist/memory/in-memory.mjs"
+    },
+    "./scheduler/cron": {
+      "types": "./dist/scheduler/cron.d.mts",
+      "import": "./dist/scheduler/cron.mjs"
+    },
     "./sandbox/local": {
       "types": "./dist/sandbox/local.d.mts",
       "import": "./dist/sandbox/local.mjs"
     },
-    "./sandbox/host": {
-      "types": "./dist/sandbox/host.d.mts",
-      "import": "./dist/sandbox/host.mjs"
-    },
     "./mcp": {
       "types": "./dist/mcp/index.d.mts",
       "import": "./dist/mcp/index.mjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/types.mjs"
     }
   },
   "scripts": {

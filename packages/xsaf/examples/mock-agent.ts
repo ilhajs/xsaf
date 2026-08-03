@@ -12,15 +12,12 @@ const transport = mockChannel();
 
 const agent = xsaf
   .agent({
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model: ai,
     persona: "You are a deterministic test agent.",
     stream: false,
-    modelAdapter: ai,
   })
   .channel(transport)
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
 await agent.start();
 await transport.receive({ sessionId: "demo", text: "hello xsaf" });

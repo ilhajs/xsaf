@@ -1,17 +1,21 @@
-import type { ModelRequest, ModelResponse, XsafModelAdapter } from "../types";
+import type { ModelRequest, ModelResponse, XsafModel, XsafModelAdapter } from "../types";
 
 export type MockModelResponder = (request: ModelRequest) => ModelResponse | Promise<ModelResponse>;
 
 export interface MockModelOptions {
+  readonly name?: string;
   readonly response?: string | ModelResponse | MockModelResponder;
 }
 
-/** Deterministic model adapter for examples and tests. It never performs I/O. */
-export class MockModelAdapter implements XsafModelAdapter {
+export interface MockModel extends XsafModel {
+  readonly requests: readonly ModelRequest[];
+}
+
+class MockAdapter implements XsafModelAdapter {
   readonly requests: ModelRequest[] = [];
   readonly #response: string | ModelResponse | MockModelResponder;
 
-  constructor(options: MockModelOptions = {}) {
+  constructor(options: MockModelOptions) {
     this.#response = options.response ?? "Mock response";
   }
 
@@ -23,6 +27,12 @@ export class MockModelAdapter implements XsafModelAdapter {
   }
 }
 
-export default function mockModel(options?: MockModelOptions): MockModelAdapter {
-  return new MockModelAdapter(options);
+/** Deterministic configured model for examples and tests. It never performs I/O. */
+export default function mockModel(options: MockModelOptions = {}): MockModel {
+  const adapter = new MockAdapter(options);
+  return {
+    name: options.name ?? "mock/model",
+    adapter,
+    requests: adapter.requests,
+  };
 }

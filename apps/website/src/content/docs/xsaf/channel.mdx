@@ -9,7 +9,7 @@ sidebar:
 ## Signature
 
 ```ts
-builder.channel(driver: XsafChannelDriver): XsafBuilder
+agent.channel(driver: XsafChannelDriver): XsafAgent
 ```
 
 A channel receives messages from an external surface and sends agent results back to it.
@@ -17,7 +17,7 @@ A channel receives messages from an external surface and sends agent results bac
 ## Usage
 
 ```ts
-builder.channel({
+agent.channel({
   name: "support_chat",
   listen(context) {
     subscribe((message) =>

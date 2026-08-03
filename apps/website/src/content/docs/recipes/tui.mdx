@@ -1,70 +1,59 @@
 ---
 title: Terminal UI
-description: Add a polished interactive prompt, Markdown history, streaming output, and runtime statuses with @xsaf/tui.
+description: Add a responsive interactive terminal chat to a configured XSAF agent.
 sidebar:
   order: 4
 ---
 
-`@xsaf/tui` is the optional terminal chat interface for XSAF. It uses Pi TUI to provide a focused agent experience without coupling the core runtime to a terminal.
-
 ## Install
 
-```sh
-bun add @xsaf/agent @xsaf/tui
-```
+<PackageManagers pkg="@xsaf/tui" />
 
-Pi TUI requires Node.js 22.19 or newer. Bun is also supported.
+`@xsaf/tui` requires Node.js 22.19 or newer.
 
 ## Start a chat
 
 ```ts
+import { xsaf } from "@xsaf/agent";
+import mockModel from "@xsaf/agent/model/mock";
 import tui from "@xsaf/tui";
 
-const builder = xsaf.agent({
-  ...config,
+const agent = xsaf.agent({
   name: "workspace_agent",
+  persona: "Be concise.",
+  model: mockModel(),
 });
-await builder.start();
+
+await agent.start();
 
 const chat = tui({
-  agent: builder,
+  agent,
   sessionId: "terminal",
-  onExit: () => builder.stop(),
+  async onExit() {
+    await agent.stop();
+  },
 });
 
 chat.start();
 ```
 
-A configured agent name is required and labels the TUI header and assistant messages. The UI provides:
-
-- A bordered multiline editor with prompt history
-- Enter to submit and Shift+Enter for new lines
-- Markdown messages and code blocks
-- Incremental streaming responses
-- An animated working indicator
-- Tool running, completed, and failed states
-- Delegate running and completed states
-- Graceful asynchronous shutdown
+The configured agent name labels the header and assistant messages. The UI provides a multiline editor, prompt history, Markdown responses, throttled streaming, bounded history, and tool/delegate status updates.
 
 ## Add application output
 
 ```ts
 chat.addMessage("System", "Connected to the workspace.");
-chat.addToolResult("read_file", {
-  path: "README.md",
-  lines: 120,
-});
-chat.setStatus("sync", "Synchronizing", "running");
+chat.setStatus("sync", "Workspace sync", "success");
 ```
 
-General XSAF telemetry does not include tool arguments or outputs. `@xsaf/tui` therefore shows automatic tool lifecycle states without exposing results. Call `addToolResult()` only when displaying a result is appropriate for your application.
+The controller intentionally does not expose Pi TUI internals or automatic tool results. General event telemetry excludes tool arguments and outputs; display sensitive application output only through an explicit `addMessage()` call.
 
-## Customize the theme
+## Shutdown
 
-Pass `theme` to replace the default ANSI functions, editor theme, and Markdown theme. Pass a Pi TUI `Terminal` implementation through `terminal` when the process terminal is not appropriate.
+`stop()` is asynchronous and idempotent. `Ctrl+C` calls it automatically. Put server and agent cleanup in `onExit` so the terminal, listener, and agent close together.
 
 ## Next steps
 
-- [Build and configure an agent](/xsaf)
+- [Configure an agent](/xsaf/agent)
 - [Review Tools & Security](/recipes/tools)
 - [Test without tokens](/recipes/testing)

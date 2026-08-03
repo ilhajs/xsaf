@@ -12,7 +12,7 @@ type Pending = {
 };
 
 /** Fetch-native HTTP channel mounted on the agent's shared Hono app. */
-export class HttpChannel implements XsafChannelDriver {
+class HttpChannel implements XsafChannelDriver {
   readonly name: string;
   readonly path: string;
   readonly #pending = new Map<string, Pending[]>();

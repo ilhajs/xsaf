@@ -1,34 +1,30 @@
 import { describe, expect, test } from "bun:test";
 import type { XsafToolSchema } from "../src";
-import {
-  InMemoryMemory,
-  ToolApprovalError,
-  ToolTimeoutError,
-  xsaf,
-  type AgentResult,
-  type ModelRequest,
-  type ModelResponse,
-  type ScheduledTask,
-  type ScheduleConfig,
-  type XsafModelAdapter,
-  type XsafSchedulerDriver,
-} from "../src";
+import { ToolApprovalError, ToolTimeoutError, xsaf } from "../src";
+import type {
+  AgentResult,
+  ModelRequest,
+  ModelResponse,
+  ScheduledTask,
+  ScheduleConfig,
+  XsafModel,
+  XsafModelAdapter,
+  XsafSchedulerDriver,
+} from "../src/types";
 import http from "../src/channel/http";
 import mock from "../src/channel/mock";
 import mockModel from "../src/model/mock";
 import mcp from "../src/mcp";
-import host from "../src/sandbox/host";
+import local from "../src/sandbox/local";
+import { inMemory } from "../src/memory/in-memory";
 
 const config = (
-  adapter: XsafModelAdapter,
+  value: XsafModel | XsafModelAdapter,
   overrides: Partial<Parameters<typeof xsaf.agent>[0]> = {},
 ) => ({
-  model: "mock-model",
-  baseURL: "https://mock.invalid/v1/",
-  apiKey: "test-key",
+  model: "adapter" in value ? value : { name: "mock-model", adapter: value },
   persona: "test persona",
   stream: false,
-  modelAdapter: adapter,
   ...overrides,
 });
 
@@ -88,8 +84,8 @@ async function read(
 describe("builder and lifecycle", () => {
   test("validates required config eagerly", () => {
     const adapter = new MockAdapter();
-    expect(() => xsaf.agent(config(adapter, { apiKey: "" }))).toThrow("apiKey");
-    expect(() => xsaf.agent(config(adapter, { model: "" }))).toThrow("model");
+    expect(() => xsaf.agent(config(adapter, { persona: "" }))).toThrow("persona");
+    expect(() => xsaf.agent(config(adapter, { model: { name: "", adapter } }))).toThrow("model");
     expect(() => xsaf.agent(config(adapter, { maxSteps: 0 }))).toThrow("maxSteps");
   });
 
@@ -174,7 +170,7 @@ describe("builder and lifecycle", () => {
     );
     expect(builder.name).toBe("main_agent");
     expect(builder.description).toBe("Primary test agent");
-    const agent = builder.asAgent();
+    const agent = builder;
     expect(agent.name).toBe("main_agent");
     expect(agent.description).toBe("Primary test agent");
     expect(() => xsaf.agent(config(mockModel(), { name: "Not Valid" }))).toThrow(
@@ -185,21 +181,18 @@ describe("builder and lifecycle", () => {
   test("coalesces concurrent lifecycle calls", async () => {
     let listens = 0;
     let closes = 0;
-    const agent = xsaf
-      .agent(config(mockModel()))
-      .channel({
-        name: "concurrent",
-        async listen() {
-          await Promise.resolve();
-          listens += 1;
-        },
-        async send() {},
-        async close() {
-          await Promise.resolve();
-          closes += 1;
-        },
-      })
-      .asAgent("concurrent_agent");
+    const agent = xsaf.agent(config(mockModel())).channel({
+      name: "concurrent",
+      async listen() {
+        await Promise.resolve();
+        listens += 1;
+      },
+      async send() {},
+      async close() {
+        await Promise.resolve();
+        closes += 1;
+      },
+    });
     await Promise.all([agent.start(), agent.start()]);
     await Promise.all([agent.stop(), agent.stop()]);
     expect({ listens, closes }).toEqual({ listens: 1, closes: 1 });
@@ -226,8 +219,7 @@ describe("builder and lifecycle", () => {
           closed.push("second");
           throw new Error("second failed");
         },
-      })
-      .asAgent("closing_agent");
+      });
     await agent.start();
     await expect(agent.stop()).rejects.toBeInstanceOf(AggregateError);
     expect(closed).toEqual(["second", "first"]);
@@ -248,10 +240,12 @@ describe("builder and lifecycle", () => {
         async execute() {},
       }),
     ).toThrow("Duplicate");
-    const conflictingDelegate = xsaf.agent(config(new MockAdapter())).asAgent("valid_tool");
+    const conflictingDelegate = xsaf.agent(config(new MockAdapter(), { name: "valid_tool" }));
     expect(() => builder.delegate(conflictingDelegate)).toThrow("Duplicate");
-    const sealed = xsaf.agent(config(new MockAdapter())).asAgent("child");
-    expect(sealed.name).toBe("child");
+    const child = xsaf.agent(config(new MockAdapter(), { name: "child" }));
+    builder.delegate(child);
+    expect(child.name).toBe("child");
+    expect(() => child.memory(inMemory())).toThrow("sealed");
   });
 });
 
@@ -260,7 +254,7 @@ describe("runtime, memory, and channels", () => {
     const adapter = new MockAdapter((request) => ({
       text: `reply:${request.messages.at(-1)?.content}`,
     }));
-    const memory = new InMemoryMemory();
+    const memory = inMemory();
     const builder = xsaf.agent(config(adapter)).memory(memory);
     await builder.start();
     expect((await read(await builder.invoke("one", "a"))).text).toBe("reply:one");
@@ -348,7 +342,7 @@ describe("runtime, memory, and channels", () => {
   });
 
   test("preserves streaming backpressure and persists after consumption", async () => {
-    const memory = new InMemoryMemory();
+    const memory = inMemory();
     let pulls = 0;
     const adapter: XsafModelAdapter = {
       async generate() {
@@ -391,7 +385,7 @@ describe("tool pipeline", () => {
     const builder = xsaf
       .agent(config(adapter))
       .sandbox({
-        ...host({ allowUnsafeHostExecution: true }),
+        ...local(),
         name: "tracking_host",
         async run(fn, args) {
           sandboxRuns += 1;
@@ -439,7 +433,7 @@ describe("tool pipeline", () => {
     });
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .tool({
         name: "denied_tool",
         description: "denied",
@@ -464,7 +458,7 @@ describe("tool pipeline", () => {
     }));
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .tool({
         name: "slow_tool",
         description: "slow",
@@ -495,7 +489,7 @@ describe("tool pipeline", () => {
     });
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .tool({
         name: "cancelled_tool",
         description: "observes cancellation",
@@ -519,7 +513,9 @@ describe("delegation, MCP, schedules, and structured output", () => {
       expect(request.messages.some((message) => message.content === "parent secret")).toBe(false);
       return { text: "child-result" };
     });
-    const child = xsaf.agent(config(childAdapter)).asAgent("researcher", "research tasks");
+    const child = xsaf.agent(
+      config(childAdapter, { name: "researcher", description: "research tasks" }),
+    );
     const parentAdapter = new MockAdapter(async (request) => {
       const delegate = request.tools.find((tool) => tool.name === "researcher");
       if (!delegate) throw new Error("researcher tool missing");
@@ -528,7 +524,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     });
     const parent = xsaf
       .agent(config(parentAdapter))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .delegate(child)
       .on("delegate.started", (event) => delegateEvents.push(event.type))
       .on("delegate.completed", (event) => delegateEvents.push(event.type));
@@ -541,7 +537,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
   test("serves tools through the Hono MCP backbone", async () => {
     const builder = xsaf
       .agent(config(mockModel()))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .tool({
         name: "echo_value",
         description: "echoes a numeric value",
@@ -550,7 +546,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
           return input;
         },
       })
-      .serve({ transport: "http", path: "/mcp" });
+      .serve({ path: "/mcp" });
     await builder.start();
     const response = await builder.app.request("http://localhost/mcp", {
       method: "POST",
@@ -663,7 +659,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     let closed = false;
     const builder = xsaf
       .agent(config(mockModel()))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .tool({
         name: "shared_tool",
         description: "local",
@@ -699,7 +695,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     }));
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(host({ allowUnsafeHostExecution: true }))
+      .sandbox(local())
       .mcp({
         name: "external",
         async connect() {
@@ -736,11 +732,8 @@ describe("delegation, MCP, schedules, and structured output", () => {
       },
     };
     const builder = xsaf
-      .agent(
-        config(new MockAdapter(() => ({ text: "heartbeat-result" })), {
-          scheduler,
-        }),
-      )
+      .agent(config(new MockAdapter(() => ({ text: "heartbeat-result" }))))
+      .scheduler(scheduler)
       .schedule({
         cron: "*/15 * * * *",
         prompt: "heartbeat",

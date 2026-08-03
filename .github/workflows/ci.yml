@@ -56,7 +56,7 @@ jobs:
 
       - name: Smoke test terminal UI with Bun
         working-directory: packages/tui
-        run: bun -e "import('./dist/index.mjs').then(m => { if (!m.XsafTui) process.exit(1) })"
+        run: bun -e "import('./dist/index.mjs').then(m => { if (typeof m.default !== 'function') process.exit(1) })"
 
   package-preview:
     name: Publish package preview

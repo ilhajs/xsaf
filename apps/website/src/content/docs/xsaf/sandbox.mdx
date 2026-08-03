@@ -9,7 +9,7 @@ sidebar:
 ## Signature
 
 ```ts
-builder.sandbox(driver: XsafSandboxDriver): XsafBuilder
+agent.sandbox(driver: XsafSandboxDriver): XsafAgent
 ```
 
 A sandbox driver owns executable-tool isolation. XSAF has no implicit host-process fallback: starting an agent with executable tools and no sandbox fails.
@@ -17,7 +17,7 @@ A sandbox driver owns executable-tool isolation. XSAF has no implicit host-proce
 ## Usage
 
 ```ts
-builder.sandbox(containerSandbox);
+agent.sandbox(containerSandbox);
 ```
 
 The driver receives the validated tool definition, validated input, execution context, and abort signal. It must enforce the isolation and capability policy appropriate for your deployment.
@@ -29,7 +29,7 @@ For trusted development only, explicitly opt out of isolation:
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-builder.sandbox(local());
+agent.sandbox(local());
 ```
 
-That adapter executes in the host process and is not a security boundary. See [Tools & Security](/recipes/tools) for approval ordering, cancellation, and the unsafe host compatibility adapter.
+That adapter executes in the host process and is not a security boundary. See [Tools & Security](/recipes/tools) for approval ordering, cancellation, and the explicit unsafe local adapter.

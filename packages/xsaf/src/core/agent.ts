@@ -1,9 +1,8 @@
 import type { StandardSchemaV1, XsafToolSchema } from "../standard-schema";
 import { HonoBackbone } from "../backbone/hono";
 import type { EventBus } from "../events/event-bus";
-import { InMemoryMemory } from "../memory/in-memory";
-import { XsaiModelAdapter } from "../model/xsai-adapter";
-import { CronScheduler } from "../scheduler/cron";
+import { inMemory } from "../memory/in-memory";
+import { cron } from "../scheduler/cron";
 import type {
   AgentConfig,
   AgentResult,
@@ -22,6 +21,7 @@ import type {
   XsafMcpDriver,
   XsafMemoryDriver,
   XsafSandboxDriver,
+  XsafSchedulerDriver,
 } from "../types";
 import { toModelTool } from "./tool-executor";
 
@@ -35,7 +35,7 @@ export type ResourceDefinition =
   | { readonly type: "schedule"; readonly value: ScheduleConfig };
 
 export interface DelegateRegistration {
-  readonly agent: XsafAgent;
+  readonly agent: AgentRuntime;
   readonly options: DelegateOptions;
 }
 
@@ -44,6 +44,7 @@ export interface AgentDefinition {
   readonly tools: readonly ToolConfig[];
   readonly resources: readonly ResourceDefinition[];
   readonly events: EventBus;
+  readonly scheduler?: XsafSchedulerDriver;
   readonly name?: string;
   readonly description?: string;
 }
@@ -91,7 +92,7 @@ function delegateSchema(): XsafToolSchema<unknown, { readonly prompt: string }> 
   };
 }
 
-export class XsafAgent {
+export class AgentRuntime {
   readonly name: string | undefined;
   readonly description: string | undefined;
   readonly channels: ReadonlyMap<string, XsafChannelDriver>;
@@ -104,7 +105,7 @@ export class XsafAgent {
   readonly #mcpConnections: McpConnection[] = [];
   readonly #modelToolNames = new Set<string>();
   readonly #sessionTails = new Map<string, Promise<void>>();
-  #memory: XsafMemoryDriver = new InMemoryMemory();
+  #memory: XsafMemoryDriver = inMemory();
   #sandbox?: XsafSandboxDriver;
   #state: "idle" | "starting" | "started" | "stopping" = "idle";
   #startPromise: Promise<this> | undefined;
@@ -201,7 +202,7 @@ export class XsafAgent {
   ): Promise<Output> {
     this.#assertStarted();
     return this.#withSessionLock(sessionId, async () => {
-      const adapter = this.#definition.config.modelAdapter ?? new XsaiModelAdapter();
+      const adapter = this.#definition.config.model.adapter;
       if (!adapter.ask)
         throw new Error("The configured model adapter does not support structured output");
       await this.#memory.append(sessionId, { role: "user", content: prompt });
@@ -283,7 +284,7 @@ export class XsafAgent {
     await this.#memory.append(sessionId, { role: "user", content: prompt });
     const history = await this.#memory.get(sessionId);
     const messages = [...inherited, ...history];
-    const adapter = this.#definition.config.modelAdapter ?? new XsaiModelAdapter();
+    const adapter = this.#definition.config.model.adapter;
     const request = this.#request(messages, sessionId);
 
     if ((this.#definition.config.stream ?? true) && adapter.stream) {
@@ -340,9 +341,9 @@ export class XsafAgent {
       }),
     );
     return {
-      model: this.#definition.config.model,
-      baseURL: this.#definition.config.baseURL,
-      apiKey: this.#definition.config.apiKey,
+      model: this.#definition.config.model.name,
+      baseURL: this.#definition.config.model.baseURL ?? "",
+      apiKey: this.#definition.config.model.apiKey ?? "",
       messages: [{ role: "system", content: this.#definition.config.persona }, ...messages],
       tools,
       maxSteps: this.#definition.config.maxSteps ?? 3,
@@ -411,7 +412,6 @@ export class XsafAgent {
         };
         await resource.value.listen({
           app: this.app,
-          onMessage(_handler) {},
           dispatch,
           emit: (event) => this.#definition.events.emit(event).then(() => undefined),
         });
@@ -462,7 +462,7 @@ export class XsafAgent {
         break;
       }
       case "schedule": {
-        const scheduler = this.#definition.config.scheduler ?? new CronScheduler();
+        const scheduler = this.#definition.scheduler ?? cron();
         const task = await scheduler.schedule(resource.value, () =>
           this.#runSchedule(resource.value),
         );

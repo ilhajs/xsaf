@@ -2,20 +2,20 @@
 title: .on()
 description: Subscribe to typed agent lifecycle and execution events.
 sidebar:
-  order: 10
+  order: 11
   label: .on()
 ---
 
 ## Signature
 
 ```ts
-builder.on(type: EventType, handler: EventHandler): XsafBuilder
+agent.on(type: EventType, handler: EventHandler): XsafAgent
 ```
 
 ## Usage
 
 ```ts
-builder
+agent
   .on("tool.called", (event) => {
     console.log(event.sessionId, event.tool);
   })
@@ -24,7 +24,7 @@ builder
   });
 ```
 
-Handlers can be registered before or after the builder is sealed. `.on()` returns the builder, so subscriptions can stay in the configuration chain.
+Handlers can be registered before or after the agent is sealed. `.on()` returns the agent, so subscriptions can stay in the configuration chain.
 
 ## Privacy boundary
 

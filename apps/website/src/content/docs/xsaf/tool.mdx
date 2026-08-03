@@ -9,7 +9,7 @@ sidebar:
 ## Signature
 
 ```ts
-builder.tool(config: ToolConfig): XsafBuilder
+agent.tool(config: ToolConfig): XsafAgent
 ```
 
 `.tool()` registers one model-visible tool. Tool names must use lowercase snake_case and must not collide with another tool, delegate, or discovered MCP tool.
@@ -17,7 +17,7 @@ builder.tool(config: ToolConfig): XsafBuilder
 ## Usage
 
 ```ts
-builder.tool({
+agent.tool({
   name: "lookup_order",
   description: "Look up an order by ID",
   input: orderInputSchema,

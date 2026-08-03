@@ -9,19 +9,17 @@ sidebar:
 ## Signature
 
 ```ts
-builder.delegate(agent: XsafAgent, options?: DelegateOptions): XsafBuilder
+agent.delegate(agent: XsafAgent, options?: DelegateOptions): XsafAgent
 ```
 
 ## Seal and register a child
 
 ```ts
-const researcher = xsaf
-  .agent({
-    ...researchConfig,
-    name: "researcher",
-    description: "Research one focused question",
-  })
-  .asAgent();
+const researcher = xsaf.agent({
+  ...researchConfig,
+  name: "researcher",
+  description: "Research one focused question",
+});
 
 const parent = xsaf.agent(parentConfig).sandbox(sandbox).delegate(researcher, {
   passContext: false,
@@ -41,4 +39,4 @@ Delegates support `"auto"`, `"human"`, or callback approval. Execution uses the 
 
 Starting the parent starts its children. Shutdown closes them through the normal reverse-order lifecycle. The parent emits `delegate.started` and `delegate.completed`; completion is emitted even when the child request fails so telemetry can close the span without exposing the delegated prompt.
 
-Create reusable children with [`.asAgent()`](/xsaf/as-agent), and see [Tools & Security](/recipes/tools) for shared execution policy.
+Registering a child seals its configuration. See [Tools & Security](/recipes/tools) for shared execution policy.

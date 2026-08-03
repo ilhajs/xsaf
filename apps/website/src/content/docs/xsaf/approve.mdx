@@ -2,20 +2,20 @@
 title: .approve()
 description: Register the privileged policy handler for approval-gated tools.
 sidebar:
-  order: 11
+  order: 12
   label: .approve()
 ---
 
 ## Signature
 
 ```ts
-builder.approve(handler: HumanApprovalHandler): XsafBuilder
+agent.approve(handler: HumanApprovalHandler): XsafAgent
 ```
 
 ## Usage
 
 ```ts
-builder.approve(async (input, { tool, sessionId }) => {
+agent.approve(async (input, { tool, sessionId }) => {
   if (tool === "delete_account") {
     return confirmDeletion(sessionId, input);
   }

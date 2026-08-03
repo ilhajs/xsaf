@@ -2,14 +2,14 @@
 title: .fetch()
 description: Handle a web-standard Request with the agent's Hono application.
 sidebar:
-  order: 17
+  order: 16
   label: .fetch()
 ---
 
 ## Signature
 
 ```ts
-builder.fetch(request: Request): Promise<Response>
+agent.fetch(request: Request): Promise<Response>
 agent.fetch(request: Request): Promise<Response>
 ```
 
@@ -17,7 +17,7 @@ agent.fetch(request: Request): Promise<Response>
 
 ```ts
 const server = serve({
-  fetch: (request) => builder.fetch(request),
+  fetch: (request) => agent.fetch(request),
   port: 3000,
 });
 ```
@@ -29,6 +29,6 @@ Every agent owns a Hono app with:
 - the MCP route configured by [`.serve()`](/xsaf/serve), when present
 - routes installed by HTTP-capable [`.channel()`](/xsaf/channel) drivers
 
-XSAF never opens a socket. Pass `.fetch()` to srvx, a Node adapter, Workers, or another compatible fetch-native host. Use `builder.app` when composing additional Hono routes or testing in memory.
+XSAF never opens a socket. Pass `.fetch()` to srvx, a Node adapter, Workers, or another compatible fetch-native host. Use `agent.app` when composing additional Hono routes or testing in memory.
 
-The builder must be started before handling runtime requests.
+The agent must be started before handling runtime requests.

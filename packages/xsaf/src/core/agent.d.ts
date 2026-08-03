@@ -12,6 +12,7 @@ import type {
   XsafMcpDriver,
   XsafMemoryDriver,
   XsafSandboxDriver,
+  XsafSchedulerDriver,
 } from "../types";
 export type ResourceDefinition =
   | {
@@ -43,7 +44,7 @@ export type ResourceDefinition =
       readonly value: ScheduleConfig;
     };
 export interface DelegateRegistration {
-  readonly agent: XsafAgent;
+  readonly agent: AgentRuntime;
   readonly options: DelegateOptions;
 }
 export interface AgentDefinition {
@@ -51,10 +52,11 @@ export interface AgentDefinition {
   readonly tools: readonly ToolConfig[];
   readonly resources: readonly ResourceDefinition[];
   readonly events: EventBus;
+  readonly scheduler?: XsafSchedulerDriver;
   readonly name?: string;
   readonly description?: string;
 }
-export declare class XsafAgent {
+export declare class AgentRuntime {
   #private;
   readonly name: string | undefined;
   readonly description: string | undefined;

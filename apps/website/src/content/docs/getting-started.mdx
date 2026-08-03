@@ -34,19 +34,16 @@ const model = mockModel({
 
 const channel = mockChannel();
 
-const builder = xsaf
+const agent = xsaf
   .agent({
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model,
     persona: "You are a deterministic test agent.",
     stream: false,
-    modelAdapter: model,
   })
   .channel(channel)
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
-await builder.start();
+await agent.start();
 
 await channel.receive({
   sessionId: "demo",
@@ -55,10 +52,10 @@ await channel.receive({
 
 console.log(channel.sent[0]?.payload);
 
-await builder.stop();
+await agent.stop();
 ```
 
-`apiKey` and the other required agent fields are still validated when a custom model adapter is used. The mock adapter ignores their values.
+The mock model is fully configured, so tests need no placeholder endpoint or credentials.
 
   </Step>
 
@@ -82,7 +79,7 @@ Mock assistant received: hello xsaf
 Every agent owns a Hono app. Use `app.request()` in tests or wrap `agent.fetch(request)` for your runtime's HTTP server:
 
 ```ts
-const response = await builder.app.request("http://localhost/invoke", {
+const response = await agent.app.request("http://localhost/invoke", {
   method: "POST",
   headers: {
     host: "localhost",
@@ -101,13 +98,17 @@ console.log(await response.json());
 
 ## Use a real model
 
-Omit `modelAdapter` to use the bundled xsAI adapter:
+Configure the bundled xsAI model explicitly:
 
 ```ts
-const builder = xsaf.agent({
-  model: "your-provider/model",
-  baseURL: process.env.MODEL_BASE_URL!,
-  apiKey: process.env.MODEL_API_KEY!,
+import xsai from "@xsaf/agent/model/xsai";
+
+const agent = xsaf.agent({
+  model: xsai({
+    model: "your-provider/model",
+    baseURL: process.env.MODEL_BASE_URL!,
+    apiKey: process.env.MODEL_API_KEY!,
+  }),
   persona: "You are a concise assistant.",
 });
 ```

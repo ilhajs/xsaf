@@ -8,7 +8,7 @@ sidebar:
     variant: caution
 ---
 
-XSAF `0.1.0-alpha.0` stabilizes the core builder, lifecycle, model adapter, tool pipeline, Hono backbone, and modern MCP integration. It is not a production-complete agent platform.
+XSAF `0.1.0-alpha.0` stabilizes the unified fluent agent, lifecycle, model integration, tool pipeline, Hono backbone, and modern MCP integration. It is not a production-complete agent platform.
 
 ## Supported alpha surface
 
@@ -29,7 +29,7 @@ Broader Deno and Workers support depends on the target runtime and all installed
 ## Security boundaries
 
 - No production isolation implementation is bundled.
-- `@xsaf/agent/sandbox/local` and `@xsaf/agent/sandbox/host` execute in the host process and provide no isolation.
+- `@xsaf/agent/sandbox/local` executes in the host process and provide no isolation.
 - Sandbox permission metadata is not enforcement by itself.
 - Tool timeouts and caller cancellation are cooperative.
 - HTTP routes do not include application authentication; compose it with Hono or deployment infrastructure.
@@ -47,7 +47,7 @@ Streaming preserves backpressure and saves output after consumption. A same-sess
 - The client parses JSON, not SSE-formatted MCP responses.
 - Remote tools are discovered at connection time rather than refreshed dynamically.
 - Resource and prompt access is by exact identifier.
-- `.serve()` snapshots tools at startup, so builder registration order matters.
+- `.serve()` snapshots tools at startup, so agent registration order matters.
 
 ## Non-durable components
 

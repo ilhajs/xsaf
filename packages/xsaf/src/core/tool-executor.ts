@@ -28,7 +28,7 @@ export class ToolTimeoutError extends Error {
 export class ToolSandboxRequiredError extends Error {
   constructor(tool: string) {
     super(
-      `Tool "${tool}" requires an explicit sandbox; use @xsaf/agent/sandbox/host to opt into no isolation`,
+      `Tool "${tool}" requires an explicit sandbox; use @xsaf/agent/sandbox/local to opt into no isolation`,
     );
     this.name = "ToolSandboxRequiredError";
   }

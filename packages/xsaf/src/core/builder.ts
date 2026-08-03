@@ -15,8 +15,9 @@ import type {
   XsafMcpDriver,
   XsafMemoryDriver,
   XsafSandboxDriver,
+  XsafSchedulerDriver,
 } from "../types";
-import { XsafAgent, type AgentDefinition, type ResourceDefinition } from "./agent";
+import { AgentRuntime, type AgentDefinition, type ResourceDefinition } from "./agent";
 
 const TOOL_NAME = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
 
@@ -25,9 +26,8 @@ function required(name: string, value: string): void {
 }
 
 function validateConfig(config: AgentConfig): void {
-  required("model", config.model);
-  required("baseURL", config.baseURL);
-  required("apiKey", config.apiKey);
+  required("model name", config.model.name);
+  if (!config.model.adapter) throw new TypeError("Agent model adapter is required");
   required("persona", config.persona);
   if (config.name !== undefined && !TOOL_NAME.test(config.name))
     throw new TypeError(`Invalid snake_case agent name: ${config.name}`);
@@ -57,19 +57,19 @@ function validateTool(config: ToolConfig): void {
   try {
     config.input["~standard"].jsonSchema.input({ target: "draft-07" });
   } catch (error) {
-    throw new TypeError("Tool input JSON Schema conversion failed", {
-      cause: error,
-    });
+    throw new TypeError("Tool input JSON Schema conversion failed", { cause: error });
   }
 }
 
-export class XsafBuilder {
+/** The single fluent configuration and runtime object returned by xsaf.agent(). */
+export class XsafAgent {
   readonly #config: AgentConfig;
   readonly #events = new EventBus();
   readonly #tools: ToolConfig[] = [];
   readonly #resources: ResourceDefinition[] = [];
   readonly #names = new Set<string>();
-  #runtime: XsafAgent | undefined;
+  #runtime: AgentRuntime | undefined;
+  #scheduler: XsafSchedulerDriver | undefined;
   #sealed = false;
 
   constructor(config: AgentConfig) {
@@ -87,12 +87,9 @@ export class XsafBuilder {
 
   delegate(agent: XsafAgent, options: DelegateOptions = {}): this {
     this.#assertConfigurable();
-    if (!agent.name)
-      throw new TypeError(
-        "Delegated agents must have a configured name and be sealed with asAgent()",
-      );
+    if (!agent.name) throw new TypeError("Delegated agents must have a configured name");
     this.#reserveName("delegate", agent.name);
-    this.#resources.push({ type: "delegate", value: { agent, options } });
+    this.#resources.push({ type: "delegate", value: { agent: agent.#seal(), options } });
     return this;
   }
 
@@ -105,9 +102,8 @@ export class XsafBuilder {
 
   memory(driver: XsafMemoryDriver): this {
     this.#assertConfigurable();
-    if (this.#resources.some((resource) => resource.type === "memory")) {
+    if (this.#resources.some((resource) => resource.type === "memory"))
       throw new Error("Only one memory driver may be configured");
-    }
     this.#resources.push({ type: "memory", value: driver });
     return this;
   }
@@ -126,8 +122,17 @@ export class XsafBuilder {
     return this;
   }
 
-  serve(config: ServeConfig): this {
+  scheduler(driver: XsafSchedulerDriver): this {
     this.#assertConfigurable();
+    if (this.#scheduler) throw new Error("Only one scheduler driver may be configured");
+    this.#scheduler = driver;
+    return this;
+  }
+
+  serve(config: ServeConfig = {}): this {
+    this.#assertConfigurable();
+    if (this.#resources.some((resource) => resource.type === "serve"))
+      throw new Error("Only one serving configuration may be registered");
     this.#resources.push({ type: "serve", value: config });
     return this;
   }
@@ -135,9 +140,7 @@ export class XsafBuilder {
   schedule(config: ScheduleConfig): this {
     this.#assertConfigurable();
     parseCron(config.cron);
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: config.timezone ?? "UTC",
-    }).format(new Date());
+    new Intl.DateTimeFormat("en-US", { timeZone: config.timezone ?? "UTC" }).format(new Date());
     this.#resources.push({ type: "schedule", value: config });
     return this;
   }
@@ -147,48 +150,23 @@ export class XsafBuilder {
     return this;
   }
 
-  /** Registers a privileged handler that may inspect validated tool arguments. */
   approve(handler: HumanApprovalHandler): this {
     this.#events.approve(handler);
     return this;
   }
 
-  asAgent(name = this.#config.name, description = this.#config.description): XsafAgent {
-    this.#assertConfigurable();
-    this.#assertExecutionSandbox();
-    if (!name) throw new TypeError("Agent name is required before sealing with asAgent()");
-    if (!TOOL_NAME.test(name)) throw new TypeError(`Invalid snake_case agent name: ${name}`);
-    this.#sealed = true;
-    return new XsafAgent(this.#definition(name, description));
-  }
-
-  async start(): Promise<XsafAgent> {
-    if (this.#runtime) return this.#runtime.start();
-    this.#assertExecutionSandbox();
-    this.#sealed = true;
-    const runtime = new XsafAgent(this.#definition());
-    this.#runtime = runtime;
-    try {
-      await runtime.start();
-      return runtime;
-    } catch (error) {
-      this.#runtime = undefined;
-      throw error;
-    }
+  async start(): Promise<this> {
+    await this.#seal().start();
+    return this;
   }
 
   async stop(): Promise<void> {
     await this.#runtime?.stop();
-    this.#runtime = undefined;
   }
 
   async invoke(prompt: string, sessionId?: string): Promise<InvokeResult> {
     if (!this.#runtime) throw new Error("Agent must be started before invocation");
     return this.#runtime.invoke(prompt, sessionId);
-  }
-
-  run(prompt: string, sessionId?: string): Promise<InvokeResult> {
-    return this.invoke(prompt, sessionId);
   }
 
   ask<Output>(
@@ -200,6 +178,11 @@ export class XsafBuilder {
     return this.#runtime.ask(prompt, schema, sessionId);
   }
 
+  prompt(name: string, args?: Readonly<Record<string, unknown>>): Promise<string> {
+    if (!this.#runtime) throw new Error("Agent must be started before reading MCP prompts");
+    return this.#runtime.prompt(name, args);
+  }
+
   get name(): string | undefined {
     return this.#config.name;
   }
@@ -208,7 +191,11 @@ export class XsafBuilder {
     return this.#config.description;
   }
 
-  get app(): XsafAgent["app"] {
+  get started(): boolean {
+    return this.#runtime?.started ?? false;
+  }
+
+  get app(): AgentRuntime["app"] {
     if (!this.#runtime) throw new Error("Agent must be started before accessing the Hono app");
     return this.#runtime.app;
   }
@@ -229,14 +216,23 @@ export class XsafBuilder {
     );
   }
 
-  #definition(name = this.#config.name, description = this.#config.description): AgentDefinition {
+  #seal(): AgentRuntime {
+    if (this.#runtime) return this.#runtime;
+    this.#assertExecutionSandbox();
+    this.#sealed = true;
+    this.#runtime = new AgentRuntime(this.#definition());
+    return this.#runtime;
+  }
+
+  #definition(): AgentDefinition {
     return {
       config: this.#config,
       events: this.#events,
       tools: [...this.#tools],
       resources: [...this.#resources],
-      ...(name ? { name } : {}),
-      ...(description ? { description } : {}),
+      ...(this.#scheduler ? { scheduler: this.#scheduler } : {}),
+      ...(this.name ? { name: this.name } : {}),
+      ...(this.description ? { description: this.description } : {}),
     };
   }
 
@@ -262,12 +258,12 @@ export class XsafBuilder {
   }
 
   #assertConfigurable(): void {
-    if (this.#sealed) throw new Error("Builder is sealed and cannot be changed");
+    if (this.#sealed) throw new Error("Agent is sealed and cannot be changed");
   }
 }
 
 export const xsaf = {
-  agent(config: AgentConfig): XsafBuilder {
-    return new XsafBuilder(config);
+  agent(config: AgentConfig): XsafAgent {
+    return new XsafAgent(config);
   },
 };

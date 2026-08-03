@@ -29,8 +29,6 @@ export type ChannelPayload =
 export interface ChannelContext {
   /** Shared Hono request backbone for HTTP-capable channels. */
   readonly app: Hono;
-  /** Compatibility registration hook for drivers that install middleware around inbound messages. */
-  onMessage(handler: (message: InboundMessage) => Promise<void>): void;
   /** Delivers an inbound message into the agent's unified request path. */
   dispatch(message: InboundMessage): Promise<void>;
   emit(event: XsafEvent): Promise<void>;
@@ -102,6 +100,13 @@ export interface XsafModelAdapter {
   ask?<Output>(request: ModelRequest, schema: StandardSchemaV1<unknown, Output>): Promise<Output>;
 }
 
+export interface XsafModel {
+  readonly name: string;
+  readonly adapter: XsafModelAdapter;
+  readonly baseURL?: string;
+  readonly apiKey?: string;
+}
+
 export type ApprovalFn<Input = unknown> = {
   bivarianceHack(
     input: Input,
@@ -135,17 +140,11 @@ export interface AgentConfig {
   /** Stable snake_case identity used by delegates, MCP, and presentation adapters. */
   readonly name?: string;
   readonly description?: string;
-  readonly model: string;
-  readonly baseURL: string;
-  readonly apiKey: string;
+  readonly model: XsafModel;
   readonly persona: string;
   readonly maxSteps?: number;
   readonly stream?: boolean;
   readonly reasoning?: "none" | "low" | "high";
-  /** Injection seam for tests and custom providers. */
-  readonly modelAdapter?: XsafModelAdapter;
-  /** Injection seam used by deterministic scheduler tests. */
-  readonly scheduler?: XsafSchedulerDriver;
 }
 
 export interface AgentResult {
@@ -192,7 +191,6 @@ export interface XsafMcpDriver {
 }
 
 export interface ServeConfig {
-  readonly transport: "http";
   readonly path?: string;
   readonly name?: string;
   readonly version?: string;

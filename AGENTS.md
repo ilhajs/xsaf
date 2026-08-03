@@ -24,7 +24,7 @@ Use a Bun workspace with independently publishable packages:
 packages/
   xsaf/                    # core package and optional subpath adapters
     src/
-      core/                # builder, sealed agent, runtime, lifecycle
+      core/                # fluent agent, internal runtime, lifecycle
       drivers/             # public structural contracts
       events/              # typed event bus
       memory/              # in-memory default
@@ -72,9 +72,9 @@ xsaf
 
 Rules:
 
-- Builder methods only configure; no I/O/background work before `.start()`.
+- Fluent agent methods only configure; no I/O/background work begins before `.start()`.
 - `.agent()` validates required config eagerly.
-- `.asAgent(name, description?)` returns a sealed reusable agent.
+- `.delegate(agent, options?)` seals a configured child agent and exposes it as a model-visible tool.
 - `.start()` rejects/handles double start predictably; `.stop()` is idempotent and safe after partial startup.
 - Start resources in declaration order when relevant; stop in reverse order.
 - Failed startup closes resources already started.
@@ -129,7 +129,7 @@ Contain volatile upstream APIs in small compatibility modules.
 ## Implementation Order
 
 1. Workspace/package metadata, strict config, canonical scripts, public types.
-2. Builder, eager validation, `.asAgent()`, lifecycle state machine.
+2. Unified fluent agent, eager validation, delegation sealing, lifecycle state machine.
 3. Request path, event bus, in-memory memory, mock channel.
 4. Tool validation, approvals, timeout/retry/error policy, executor.
 5. Delegation boundaries.

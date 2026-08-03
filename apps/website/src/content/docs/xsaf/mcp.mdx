@@ -9,7 +9,7 @@ sidebar:
 ## Signature
 
 ```ts
-builder.mcp(driver: XsafMcpDriver): XsafBuilder
+agent.mcp(driver: XsafMcpDriver): XsafAgent
 ```
 
 ## Connect over HTTP
@@ -28,7 +28,7 @@ const remote = mcp({
   trust: "untrusted",
 });
 
-const builder = xsaf.agent(config).sandbox(sandbox).mcp(remote);
+const agent = xsaf.agent(config).sandbox(sandbox).mcp(remote);
 ```
 
 On startup, the built-in client calls `tools/list`. Discovered tools enter the same model-visible namespace and execution pipeline as local tools and delegates; collisions fail startup. Tool calls use `tools/call`. Connections also support exact `resources/read` requests and `prompts/get` through `agent.prompt(name, args)`.
@@ -50,7 +50,7 @@ The built-in client is stateless HTTP. It parses JSON responses, discovers tools
 MCP resources start in declaration order and close in reverse order. Register `.mcp()` before [`.serve()`](/xsaf/serve) when discovered tools must appear in the served tool snapshot.
 
 ```ts
-xsaf.agent(config).sandbox(sandbox).mcp(remote).serve({ transport: "http" });
+xsaf.agent(config).sandbox(sandbox).mcp(remote).serve();
 ```
 
 Use [`.serve()`](/xsaf/serve) to expose the agent's tools as an MCP server. See [Tools & Security](/recipes/tools) for approval and sandbox policy.

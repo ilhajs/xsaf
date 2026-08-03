@@ -2,24 +2,24 @@
 title: .schedule()
 description: Register recurring prompts or delegated work with a scheduler driver.
 sidebar:
-  order: 9
+  order: 10
   label: .schedule()
 ---
 
 ## Signature
 
 ```ts
-builder.schedule(config: ScheduleConfig): XsafBuilder
+agent.schedule(config: ScheduleConfig): XsafAgent
 ```
 
 ## Usage
 
 ```ts
-const builder = xsaf
-  .agent({
-    ...config,
-    scheduler: new CronScheduler(),
-  })
+import { cron } from "@xsaf/agent/scheduler/cron";
+
+const agent = xsaf
+  .agent(config)
+  .scheduler(cron())
   .schedule({
     cron: "*/15 * * * *",
     timezone: "UTC",
@@ -36,7 +36,7 @@ const builder = xsaf
 
 ## Cron syntax
 
-The bundled `CronScheduler` accepts exactly five fields:
+The bundled cron scheduler accepts exactly five fields:
 
 ```text
 minute hour day-of-month month day-of-week

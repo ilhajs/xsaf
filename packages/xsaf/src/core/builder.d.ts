@@ -13,9 +13,11 @@ import type {
   XsafMcpDriver,
   XsafMemoryDriver,
   XsafSandboxDriver,
+  XsafSchedulerDriver,
 } from "../types";
-import { XsafAgent } from "./agent";
-export declare class XsafBuilder {
+import { AgentRuntime } from "./agent";
+/** The single fluent configuration and runtime object returned by xsaf.agent(). */
+export declare class XsafAgent {
   #private;
   constructor(config: AgentConfig);
   tool<Schema extends XsafToolSchema>(config: ToolConfig<Schema>): this;
@@ -24,27 +26,27 @@ export declare class XsafBuilder {
   memory(driver: XsafMemoryDriver): this;
   channel(driver: XsafChannelDriver): this;
   mcp(driver: XsafMcpDriver): this;
-  serve(config: ServeConfig): this;
+  scheduler(driver: XsafSchedulerDriver): this;
+  serve(config?: ServeConfig): this;
   schedule(config: ScheduleConfig): this;
   on<Type extends EventType>(type: Type, handler: EventHandler<Type>): this;
-  /** Registers a privileged handler that may inspect validated tool arguments. */
   approve(handler: HumanApprovalHandler): this;
-  asAgent(name?: string | undefined, description?: string | undefined): XsafAgent;
-  start(): Promise<XsafAgent>;
+  start(): Promise<this>;
   stop(): Promise<void>;
   invoke(prompt: string, sessionId?: string): Promise<InvokeResult>;
-  run(prompt: string, sessionId?: string): Promise<InvokeResult>;
   ask<Output>(
     prompt: string,
     schema: StandardSchemaV1<unknown, Output>,
     sessionId?: string,
   ): Promise<Output>;
+  prompt(name: string, args?: Readonly<Record<string, unknown>>): Promise<string>;
   get name(): string | undefined;
   get description(): string | undefined;
-  get app(): XsafAgent["app"];
+  get started(): boolean;
+  get app(): AgentRuntime["app"];
   fetch(request: Request): Promise<Response>;
   get channels(): ReadonlyMap<string, XsafChannelDriver>;
 }
 export declare const xsaf: {
-  agent(config: AgentConfig): XsafBuilder;
+  agent(config: AgentConfig): XsafAgent;
 };

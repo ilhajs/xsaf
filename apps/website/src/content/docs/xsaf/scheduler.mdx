@@ -1,0 +1,28 @@
+---
+title: .scheduler()
+description: Replace the process-local scheduler used by recurring tasks.
+sidebar:
+  order: 9
+  label: .scheduler()
+---
+
+## Signature
+
+```ts
+agent.scheduler(driver: XsafSchedulerDriver): XsafAgent
+```
+
+## Usage
+
+```ts
+import { cron } from "@xsaf/agent/scheduler/cron";
+
+const agent = xsaf.agent(config).scheduler(cron()).schedule({
+  cron: "*/15 * * * *",
+  prompt: "Check service status",
+});
+```
+
+Only one scheduler may be configured. Without `.scheduler()`, scheduled tasks use XSAF's built-in process-local cron scheduler.
+
+Register the scheduler before [`.schedule()`](/xsaf/schedule). Custom drivers implement the structural `XsafSchedulerDriver` contract exported from `@xsaf/agent/types`.

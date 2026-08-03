@@ -28,28 +28,25 @@ import mockModel from "@xsaf/agent/model/mock";
 test("replies through a channel", async () => {
   const model = mockModel({ response: "mock reply" });
   const channel = mockChannel();
-  const builder = xsaf
+  const agent = xsaf
     .agent({
-      model: "mock/model",
-      baseURL: "mock://local",
-      apiKey: "not-used",
+      model,
       persona: "Test agent",
       stream: false,
-      modelAdapter: model,
     })
     .channel(channel);
 
-  await builder.start();
+  await agent.start();
   try {
     await channel.receive({ sessionId: "test", text: "hello" });
     expect(channel.sent[0]?.payload).toBe("mock reply");
   } finally {
-    await builder.stop();
+    await agent.stop();
   }
 });
 ```
 
-`MockModelAdapter.requests` records each request. Use it to assert message history, available tools, reasoning, and step configuration without mocking private modules.
+`model.requests` records each request. Use it to assert message history, available tools, reasoning, and step configuration without mocking private modules.
 
 ## Return responses dynamically
 
@@ -62,12 +59,12 @@ const model = mockModel({
 });
 ```
 
-`response` accepts a static string, a `ModelResponse`, or a callback. `MockModelAdapter` implements non-streaming `generate()` only; when agent streaming is enabled, XSAF falls back to that method. Supply a small custom `XsafModelAdapter.stream()` implementation when a test must control lazy chunks and completion behavior.
+`response` accepts a static string, a `ModelResponse`, or a callback. The mock model implements non-streaming generation only; when agent streaming is enabled, XSAF falls back to that method. Supply a small custom `XsafModelAdapter.stream()` implementation when a test must control lazy chunks and completion behavior.
 
 ## Test Hono without a listener
 
 ```ts
-const response = await builder.app.request("http://localhost/invoke", {
+const response = await agent.app.request("http://localhost/invoke", {
   method: "POST",
   headers: {
     host: "localhost",
@@ -93,14 +90,14 @@ Tools still require an explicit sandbox in tests. When the function is trusted t
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const builder = xsaf.agent(config).sandbox(local()).tool(tool);
+const agent = xsaf.agent(config).sandbox(local()).tool(tool);
 ```
 
 This is a deliberate no-isolation adapter, not a production sandbox.
 
 ## Verify lifecycle
 
-Always stop started builders in `finally`. Add focused tests for:
+Always stop started agents in `finally`. Add focused tests for:
 
 - no driver work before `.start()`
 - same-session serialization and cross-session concurrency

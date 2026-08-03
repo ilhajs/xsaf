@@ -15,7 +15,7 @@ Every `XsafAgent` owns a Hono application. XSAF mounts routes and exposes a web-
 | -------------- | ---------------------------------------------------------------------------- |
 | `GET /health`  | Returns `{ "ok": true }`; it is not a dependency health check.               |
 | `POST /invoke` | Accepts `{ prompt, sessionId? }` and returns a collected model result.       |
-| `/mcp`         | Mounted only after `.serve({ transport: "http" })`.                          |
+| `/mcp`         | Mounted only after `.serve()`.                                               |
 | `/chat`        | Default route of `@xsaf/agent/channel/http` when that channel is registered. |
 
 Blank prompts and malformed JSON sent to `/invoke` return `400`. The default HTTP session ID is `"http"`.
@@ -23,7 +23,7 @@ Blank prompts and malformed JSON sent to `/invoke` return `400`. The default HTT
 ### Deploy the fetch handler
 
 ```ts
-const agent = await builder.start();
+await agent.start();
 
 export default {
   fetch(request: Request) {
@@ -37,8 +37,6 @@ Node.js deployments need a server adapter that translates incoming requests to w
 ### Compose with Hono
 
 ```ts
-const agent = builder.asAgent(); // builder was configured with name: "http_agent"
-
 agent.app.get("/ready", (context) => {
   return context.json({ ready: true });
 });
@@ -46,7 +44,7 @@ agent.app.get("/ready", (context) => {
 await agent.start();
 ```
 
-The same Hono app hosts user routes, channel routes, and MCP. A sealed `XsafAgent` exposes its app before startup, so mount custom middleware on it before `agent.start()` when route order matters. A builder exposes `.app` only after `builder.start()`. Hono's MCP host and Origin protections remain enabled for the MCP endpoint.
+The same Hono app hosts user routes, channel routes, and MCP. Mount custom middleware after `agent.start()` and before accepting requests when route order matters. Hono's MCP host and Origin protections remain enabled for the MCP endpoint.
 
 ### Channel contract
 
@@ -67,7 +65,7 @@ Inbound channel messages dispatch through the normal request path. The result is
 import http from "@xsaf/agent/channel/http";
 
 const channel = http({ name: "web", path: "/chat" });
-const builder = xsaf.agent(config).channel(channel);
+const agent = xsaf.agent(config).channel(channel);
 ```
 
 ```http
@@ -131,17 +129,16 @@ Tool calls receive a combined timeout and caller signal through `ToolExecutionCo
 
 ## Memory
 
-XSAF stores inbound user messages and completed assistant responses through one memory driver. The default is process-local `InMemoryMemory`.
+XSAF stores inbound user messages and completed assistant responses through one memory driver. The default is process-local in-memory storage.
 
 ### Use the default
 
 No configuration is required. For an explicit instance:
 
 ```ts
-import { InMemoryMemory, inMemory } from "@xsaf/agent";
+import { inMemory } from "@xsaf/agent/memory/in-memory";
 
 const memory = inMemory();
-const another = new InMemoryMemory();
 ```
 
 The in-memory driver is non-durable. `get()` returns a new array, but message objects are not deep-cloned.
@@ -158,7 +155,7 @@ interface XsafMemoryDriver {
 ```
 
 ```ts
-const builder = xsaf.agent(config).memory(durableMemory);
+const agent = xsaf.agent(config).memory(durableMemory);
 ```
 
 Only one memory driver can be configured. XSAF treats memory failures as request failures rather than silently continuing with incomplete context.
@@ -181,7 +178,7 @@ The package does not include SQLite or another durable memory adapter in alpha. 
 
 ## See also
 
-- [Builder and lifecycle](/xsaf)
+- [Agent lifecycle](/xsaf/start)
 - [Testing](/recipes/testing)
 - [MCP](/xsaf/mcp)
 - [Public driver contracts](/reference#public-contracts)

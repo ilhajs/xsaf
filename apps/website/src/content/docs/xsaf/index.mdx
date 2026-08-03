@@ -1,45 +1,45 @@
 ---
 title: xsaf
-description: API reference for creating and configuring XSAF agents with the fluent builder.
+description: API reference for creating and configuring XSAF agents with the fluent agent.
 sidebar:
   order: 2
   label: xsaf
 ---
 
-Import the `xsaf` factory from `@xsaf/agent`. Calling [`xsaf.agent()`](/xsaf/agent) creates an `XsafBuilder`; every configuration method returns that same builder so configuration reads as one chain.
+Import the `xsaf` factory from `@xsaf/agent`. Calling [`xsaf.agent()`](/xsaf/agent) creates an `XsafAgent`; every configuration method returns that same agent so configuration reads as one chain.
 
 ```ts
 import { xsaf } from "@xsaf/agent";
 
-const builder = xsaf
+const agent = xsaf
   .agent(config)
   .memory(memory)
   .sandbox(sandbox)
   .tool(searchTool)
   .channel(channel)
-  .serve({ transport: "http" });
+  .serve();
 
-await builder.start();
+await agent.start();
 ```
 
-Configuration is inert until [`.start()`](/xsaf/start) is called. Calling [`asAgent()`](/xsaf/as-agent) seals the builder without starting it so it can be delegated to another agent.
+Configuration is inert until [`.start()`](/xsaf/start) is called. Registering an agent with [`.delegate()`](/xsaf/delegate) seals that child automatically.
 
 ## Fluent methods
 
-| Method                          | Purpose                                                         |
-| ------------------------------- | --------------------------------------------------------------- |
-| [`.agent()`](/xsaf/agent)       | Create a builder and define model, persona, and agent identity. |
-| [`.tool()`](/xsaf/tool)         | Register a validated, model-visible tool.                       |
-| [`.channel()`](/xsaf/channel)   | Add an inbound and outbound messaging channel.                  |
-| [`.mcp()`](/xsaf/mcp)           | Connect tools, resources, and prompts from an MCP v2 server.    |
-| [`.sandbox()`](/xsaf/sandbox)   | Set the execution boundary for executable tools.                |
-| [`.memory()`](/xsaf/memory)     | Replace the session-history store.                              |
-| [`.delegate()`](/xsaf/delegate) | Expose a sealed child agent as a model-visible tool.            |
-| [`.serve()`](/xsaf/serve)       | Mount XSAF's MCP endpoint on the agent's Hono app.              |
-| [`.schedule()`](/xsaf/schedule) | Register recurring prompts or delegated work.                   |
-| [`.on()`](/xsaf/on)             | Subscribe to typed lifecycle and execution events.              |
-| [`.approve()`](/xsaf/approve)   | Register a privileged approval handler for sensitive tools.     |
-| [`.asAgent()`](/xsaf/as-agent)  | Seal configuration into a reusable agent.                       |
+| Method                            | Purpose                                                      |
+| --------------------------------- | ------------------------------------------------------------ |
+| [`.agent()`](/xsaf/agent)         | Create an agent and define its model, persona, and identity. |
+| [`.tool()`](/xsaf/tool)           | Register a validated, model-visible tool.                    |
+| [`.channel()`](/xsaf/channel)     | Add an inbound and outbound messaging channel.               |
+| [`.mcp()`](/xsaf/mcp)             | Connect tools, resources, and prompts from an MCP v2 server. |
+| [`.sandbox()`](/xsaf/sandbox)     | Set the execution boundary for executable tools.             |
+| [`.memory()`](/xsaf/memory)       | Replace the session-history store.                           |
+| [`.delegate()`](/xsaf/delegate)   | Expose a sealed child agent as a model-visible tool.         |
+| [`.serve()`](/xsaf/serve)         | Mount XSAF's MCP endpoint on the agent's Hono app.           |
+| [`.scheduler()`](/xsaf/scheduler) | Replace the scheduler driver.                                |
+| [`.schedule()`](/xsaf/schedule)   | Register recurring prompts or delegated work.                |
+| [`.on()`](/xsaf/on)               | Subscribe to typed lifecycle and execution events.           |
+| [`.approve()`](/xsaf/approve)     | Register a privileged approval handler for sensitive tools.  |
 
 ## Runtime methods
 
@@ -47,9 +47,8 @@ Configuration is inert until [`.start()`](/xsaf/start) is called. Calling [`asAg
 | --------------------------- | ---------------------------------------------- |
 | [`.start()`](/xsaf/start)   | Seal configuration and initialize resources.   |
 | [`.invoke()`](/xsaf/invoke) | Run a prompt through the unified request path. |
-| [`.run()`](/xsaf/run)       | Invoke through the builder's concise alias.    |
 | [`.ask()`](/xsaf/ask)       | Request validated structured output.           |
 | [`.fetch()`](/xsaf/fetch)   | Handle a web-standard request through Hono.    |
 | [`.stop()`](/xsaf/stop)     | Close resources in reverse order.              |
 
-The builder also exposes `builder.app`, `builder.channels`, `builder.name`, and `builder.description`. See [API Reference](/reference) for result types, driver contracts, configuration types, and events.
+The agent also exposes `agent.app`, `agent.channels`, `agent.name`, and `agent.description`. See [API Reference](/reference) for result types, driver contracts, configuration types, and events.

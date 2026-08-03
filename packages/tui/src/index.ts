@@ -15,9 +15,9 @@ import {
   // pi-lens-ignore: ts:2307
 } from "@earendil-works/pi-tui";
 // pi-lens-ignore: ts:2307
-import type { InvokeResult, XsafBuilder, XsafEvent } from "@xsaf/agent";
+import type { EventHandler, EventType, InvokeResult, XsafEvent } from "@xsaf/agent";
 
-export interface XsafTuiTheme {
+interface XsafTuiTheme {
   readonly accent: (text: string) => string;
   readonly success: (text: string) => string;
   readonly warning: (text: string) => string;
@@ -28,18 +28,31 @@ export interface XsafTuiTheme {
   readonly markdown: MarkdownTheme;
 }
 
+export interface TuiAgent {
+  readonly name?: string;
+  invoke(prompt: string, sessionId?: string): Promise<InvokeResult>;
+  on<Type extends EventType>(type: Type, handler: EventHandler<Type>): unknown;
+}
+
 export interface XsafTuiOptions {
-  readonly agent: Pick<XsafBuilder, "name" | "invoke" | "on">;
+  readonly agent: TuiAgent;
   readonly sessionId?: string;
   readonly terminal?: Terminal;
-  readonly theme?: XsafTuiTheme;
   readonly onExit?: () => void | Promise<void>;
+}
+
+export interface TuiController {
+  start(): TuiController;
+  stop(): Promise<void>;
+  submit(value: string): Promise<void>;
+  addMessage(author: string, markdown: string): void;
+  setStatus(key: string, label: string, state: "running" | "success" | "error"): void;
 }
 
 const ansi = (open: number, close: number) => (text: string) =>
   `\u001b[${open}m${text}\u001b[${close}m`;
 
-export function defaultTheme(): XsafTuiTheme {
+function defaultTheme(): XsafTuiTheme {
   const accent = ansi(36, 39);
   const success = ansi(32, 39);
   const warning = ansi(33, 39);
@@ -86,9 +99,9 @@ export function defaultTheme(): XsafTuiTheme {
   };
 }
 
-export class XsafTui {
-  readonly tui: TUI;
-  readonly editor: Editor;
+class TuiControllerImpl implements TuiController {
+  readonly #tui: TUI;
+  readonly #editor: Editor;
 
   readonly #options: Required<Pick<XsafTuiOptions, "sessionId">> & XsafTuiOptions;
   readonly #agentName: string;
@@ -108,16 +121,16 @@ export class XsafTui {
     if (!options.agent.name)
       throw new TypeError("@xsaf/tui requires an agent configured with a name");
     this.#agentName = options.agent.name;
-    this.#theme = options.theme ?? defaultTheme();
-    this.tui = new TUI(options.terminal ?? new ProcessTerminal());
-    this.editor = new Editor(this.tui, this.#theme.editor, { paddingX: 1 });
-    this.editor.onSubmit = (value: string) => void this.submit(value);
+    this.#theme = defaultTheme();
+    this.#tui = new TUI(options.terminal ?? new ProcessTerminal());
+    this.#editor = new Editor(this.#tui, this.#theme.editor, { paddingX: 1 });
+    this.#editor.onSubmit = (value: string) => void this.submit(value);
 
-    this.tui.addChild(new Text(this.#agentName, 1, 1));
-    this.tui.addChild(this.#messages);
-    this.tui.addChild(this.editor);
-    this.tui.setFocus(this.editor);
-    this.tui.addInputListener((data: string) => {
+    this.#tui.addChild(new Text(this.#agentName, 1, 1));
+    this.#tui.addChild(this.#messages);
+    this.#tui.addChild(this.#editor);
+    this.#tui.setFocus(this.#editor);
+    this.#tui.addInputListener((data: string) => {
       if (matchesKey(data, Key.ctrl("c"))) {
         void this.stop();
         return { consume: true };
@@ -132,7 +145,7 @@ export class XsafTui {
     if (this.#stopping) throw new Error("Cannot restart a stopped XSAF TUI");
     if (!this.#started) {
       this.#started = true;
-      this.tui.start();
+      this.#tui.start();
     }
     return this;
   }
@@ -140,7 +153,7 @@ export class XsafTui {
   async stop(): Promise<void> {
     if (this.#stopping) return this.#stopping;
     this.#stopping = (async () => {
-      if (this.#started) this.tui.stop();
+      if (this.#started) this.#tui.stop();
       this.#started = false;
       await this.#options.onExit?.();
     })();
@@ -152,15 +165,15 @@ export class XsafTui {
     if (!prompt || this.#busy) return;
 
     this.#busy = true;
-    this.editor.disableSubmit = true;
-    this.editor.borderColor = this.#theme.dim;
-    this.editor.addToHistory(prompt);
-    this.editor.setText("");
+    this.#editor.disableSubmit = true;
+    this.#editor.borderColor = this.#theme.dim;
+    this.#editor.addToHistory(prompt);
+    this.#editor.setText("");
     this.addMessage("You", prompt);
 
     const thinking = new Text(this.#theme.dim("◇ Thinking…"), 1, 0);
     this.#append(thinking);
-    this.tui.requestRender();
+    this.#tui.requestRender();
 
     try {
       const result = await this.#options.agent.invoke(prompt, this.#options.sessionId);
@@ -173,25 +186,17 @@ export class XsafTui {
       this.#append(new Spacer(1));
     } finally {
       this.#busy = false;
-      this.editor.disableSubmit = false;
-      this.editor.borderColor = this.#theme.accent;
-      this.tui.requestRender();
+      this.#editor.disableSubmit = false;
+      this.#editor.borderColor = this.#theme.accent;
+      this.#tui.requestRender();
     }
   }
 
   addMessage(author: string, markdown: string): Markdown {
     const message = new Markdown(`**${author}**\n\n${markdown}`, 1, 1, this.#theme.markdown);
     this.#append(message);
-    this.tui.requestRender();
+    this.#tui.requestRender();
     return message;
-  }
-
-  addToolResult(tool: string, result: unknown): void {
-    const value =
-      typeof result === "string"
-        ? result
-        : `\`\`\`json\n${JSON.stringify(result, null, 2) ?? "null"}\n\`\`\``;
-    this.addMessage(`Tool · ${tool}`, value || "Completed");
   }
 
   setStatus(key: string, label: string, state: "running" | "success" | "error"): void {
@@ -210,7 +215,7 @@ export class XsafTui {
       this.#activity.set(key, status);
       this.#append(status);
     }
-    this.tui.requestRender();
+    this.#tui.requestRender();
   }
 
   async #addAssistantResult(result: InvokeResult): Promise<void> {
@@ -229,7 +234,7 @@ export class XsafTui {
       if (now - lastRender < 50) continue;
       lastRender = now;
       streaming.setText(`${this.#agentName}\n\n${text}`);
-      this.tui.requestRender();
+      this.#tui.requestRender();
     }
     await result.completed;
     this.#messages.removeChild(streaming);
@@ -284,6 +289,6 @@ export class XsafTui {
   }
 }
 
-export default function tui(options: XsafTuiOptions): XsafTui {
-  return new XsafTui(options);
+export default function tui(options: XsafTuiOptions): TuiController {
+  return new TuiControllerImpl(options);
 }

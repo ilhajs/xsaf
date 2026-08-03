@@ -9,23 +9,23 @@ sidebar:
 ## Signature
 
 ```ts
-builder.start(): Promise<XsafAgent>
+agent.start(): Promise<XsafAgent>
 agent.start(): Promise<XsafAgent>
 ```
 
 ## Usage
 
 ```ts
-const builder = xsaf.agent(config).memory(memory).channel(channel);
-const agent = await builder.start();
+const agent = xsaf.agent(config).memory(memory).channel(channel);
+const agent = await agent.start();
 ```
 
-`.start()` seals the builder, initializes configured resources, and returns the running agent. Concurrent calls coalesce into the same startup operation.
+`.start()` seals the agent, initializes configured resources, and returns the running agent. Concurrent calls coalesce into the same startup operation.
 
 ## Lifecycle behavior
 
 Resources start in declaration order. If a resource fails, XSAF closes everything that already started before rejecting. Registration order matters when one capability depends on another—for example, call [`.mcp()`](/xsaf/mcp) before [`.serve()`](/xsaf/serve) when remotely discovered tools must be included in the served snapshot.
 
-A started builder forwards [`.invoke()`](/xsaf/invoke), [`.run()`](/xsaf/run), [`.ask()`](/xsaf/ask), and [`.fetch()`](/xsaf/fetch) to its agent. Calling those methods through the builder before startup throws.
+A started agent forwards [`.invoke()`](/xsaf/invoke), [`.invoke()`](/xsaf/invoke), [`.ask()`](/xsaf/ask), and [`.fetch()`](/xsaf/fetch) to its agent. Calling those methods through the agent before startup throws.
 
 Always pair startup with [`.stop()`](/xsaf/stop), normally in a `finally` block or process-shutdown handler.

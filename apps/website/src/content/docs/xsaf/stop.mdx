@@ -2,26 +2,26 @@
 title: .stop()
 description: Close the agent and every initialized resource safely.
 sidebar:
-  order: 18
+  order: 17
   label: .stop()
 ---
 
 ## Signature
 
 ```ts
-builder.stop(): Promise<void>
+agent.stop(): Promise<void>
 agent.stop(): Promise<void>
 ```
 
 ## Usage
 
 ```ts
-await builder.start();
+await agent.start();
 
 try {
-  await builder.invoke("Do the work");
+  await agent.invoke("Do the work");
 } finally {
-  await builder.stop();
+  await agent.stop();
 }
 ```
 

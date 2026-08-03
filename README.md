@@ -5,12 +5,7 @@
 [Documentation](https://xsaf.ilha.build) · [Getting started](https://xsaf.ilha.build/getting-started) · [Roadmap](https://xsaf.ilha.build/roadmap) · [GitHub](https://github.com/ilhajs/xsaf)
 
 ```ts
-const agent = xsaf
-  .agent(config)
-  .sandbox(sandbox)
-  .tool(search)
-  .memory(memory)
-  .serve({ transport: "http" });
+const agent = xsaf.agent(config).sandbox(sandbox).tool(search).memory(memory).serve();
 
 await agent.start();
 ```
@@ -57,25 +52,22 @@ const model = mockModel({
 });
 
 const channel = mockChannel();
-const builder = xsaf
+const agent = xsaf
   .agent({
     name: "mock_assistant",
     description: "A deterministic local assistant.",
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model,
     persona: "You are a concise assistant.",
     stream: false,
-    modelAdapter: model,
   })
   .channel(channel)
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
-await builder.start();
+await agent.start();
 await channel.receive({ sessionId: "demo", text: "hello xsaf" });
 
 console.log(channel.sent[0]?.payload);
-await builder.stop();
+await agent.stop();
 ```
 
 Move from the mock adapter to xsAI-backed models without changing the surrounding agent architecture.
@@ -92,8 +84,8 @@ bun add @xsaf/agent @xsaf/tui
 import tui from "@xsaf/tui";
 
 const chat = tui({
-  agent: builder,
-  onExit: () => builder.stop(),
+  agent,
+  onExit: () => agent.stop(),
 });
 
 chat.start();
@@ -104,7 +96,7 @@ chat.start();
 Every started agent exposes a shared Hono application:
 
 ```ts
-const agent = await builder.start();
+await agent.start();
 
 export default {
   fetch(request: Request) {
@@ -131,12 +123,12 @@ XSAF does not silently execute model-selected tools on the host. Executable loca
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-builder.sandbox(local()); // Explicit opt-in: no isolation.
+agent.sandbox(local()); // Explicit opt-in: no isolation.
 ```
 
 The bundled local adapter is intended for development and trusted code. Production isolation should use an AgentOS-compatible `XsafSandboxDriver` or another sandbox implementation. Untrusted MCP tools require human approval by default, and public approval events never expose tool arguments.
 
-Read [Tools & Security](https://xsaf.ilha.build/tools) before enabling executable tools.
+Read [Tools & Security](https://xsaf.ilha.build/recipes/tools) before enabling executable tools.
 
 ## What is included
 

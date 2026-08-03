@@ -8,7 +8,7 @@ Every agent owns a Hono application created through `@modelcontextprotocol/hono`
 
 - `POST /invoke` runs the normal XSAF request path.
 - `GET /health` provides a basic readiness response.
-- `.serve({ transport: "http" })` mounts the agent's tools on `/mcp` using the MCP v2 per-request handler.
+- `.serve()` mounts the agent's tools on `/mcp` using the MCP v2 per-request handler.
 - `agent.app` supports Hono composition and in-memory `app.request()` testing.
 - `agent.fetch(request)` can be passed to a runtime HTTP server.
 
@@ -31,15 +31,12 @@ const ai = mockModel({ response: "Hello from the mock model" });
 const channel = mockChannel();
 const agent = xsaf
   .agent({
-    model: "mock/model",
-    baseURL: "mock://local",
-    apiKey: "not-used",
+    model: ai,
     persona: "You are a test agent.",
     stream: false,
-    modelAdapter: ai,
   })
   .channel(channel)
-  .serve({ transport: "http", path: "/mcp" });
+  .serve({ path: "/mcp" });
 
 await agent.start();
 await channel.receive({ sessionId: "demo", text: "hello" });

@@ -15,18 +15,18 @@ xsaf
   .mcp(connection)
   .memory(driver)
   .channel(driver)
-  .serve({ transport: "http", path: "/mcp" })
+  .serve({ path: "/mcp" })
   .schedule(schedule)
   .on(event, handler)
   .approve(handler)
   .start();
 ```
 
-Builder methods configure only. I/O and timers begin at `.start()`.
+Fluent agent methods configure only. I/O and timers begin at `.start()`.
 
 ## Model calls
 
-`AgentConfig` requires `model`, `baseURL`, `apiKey`, and `persona`. It supports `maxSteps`, streaming, reasoning effort, a custom model adapter, and structured `.ask(schema)` output. The default adapter uses xsAI. Tests use injected deterministic model adapters and never consume AI tokens.
+`AgentConfig` requires a configured `model` dependency and `persona`. It supports `maxSteps`, streaming, reasoning effort, and structured `.ask(schema)` output. The xsAI and deterministic mock models are explicit subpath factories; tests never consume AI tokens.
 
 ## Hono backbone
 
@@ -36,7 +36,7 @@ Every running agent exposes:
 - `agent.fetch(request)`: a web-standard fetch handler.
 - `GET /health`: readiness.
 - `POST /invoke`: JSON invocation.
-- `/mcp`: mounted by `.serve({ transport: "http" })`.
+- `/mcp`: mounted by `.serve()`.
 
 XSAF mounts routes only and does not open sockets. Deployment is owned by the host runtime. The MCP endpoint accepts MCP `2026-07-28` traffic only; legacy protocol traffic is rejected. Hono host/origin protections remain enabled.
 
@@ -56,7 +56,7 @@ Executable local, delegated, and MCP tools require an explicit sandbox. XSAF has
 
 - Production users should register an AgentOS-compatible `XsafSandboxDriver`.
 - `@xsaf/agent/sandbox/local` is an explicit no-isolation opt-in.
-- `@xsaf/agent/sandbox/host` remains a compatibility alias requiring an unsafe acknowledgement.
+- `@xsaf/agent/sandbox/local` remains a compatibility alias requiring an unsafe acknowledgement.
 
 ## Approvals
 
@@ -85,7 +85,7 @@ The default memory driver is in-memory. Drivers may provide durable storage. Req
 
 ## Delegation
 
-Agents may define a snake_case `name` and description in `AgentConfig`. `.asAgent()` seals a named reusable agent; compatibility arguments may override its configured identity. `.delegate()` exposes it as a model-visible tool. Parent history is not forwarded unless `passContext: true`. Delegate lifecycle events are emitted on the parent event bus.
+Agents define a snake_case `name` and optional description in `AgentConfig`. `.delegate()` seals the configured child and exposes it as a model-visible tool. Parent history is not forwarded unless `passContext: true`. Delegate lifecycle events are emitted on the parent event bus.
 
 ## Scheduling
 

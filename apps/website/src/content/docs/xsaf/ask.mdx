@@ -2,14 +2,14 @@
 title: .ask()
 description: Request validated structured output from the configured model adapter.
 sidebar:
-  order: 16
+  order: 15
   label: .ask()
 ---
 
 ## Signature
 
 ```ts
-builder.ask<Output>(
+agent.ask<Output>(
   prompt: string,
   schema: StandardSchemaV1<unknown, Output>,
   sessionId?: string,
@@ -19,11 +19,11 @@ builder.ask<Output>(
 ## Usage
 
 ```ts
-const summary = await builder.ask("Return a project summary", projectSummarySchema, "customer-42");
+const summary = await agent.ask("Return a project summary", projectSummarySchema, "customer-42");
 ```
 
 The configured model adapter must implement `ask()`. XSAF validates through that adapter, then saves the user prompt and JSON-stringified output to session memory.
 
 The schema is a Standard Schema V1 validator. Unlike schemas passed to [`.tool()`](/xsaf/tool), structured-output schemas do not need to publish Standard JSON Schema through XSAF's tool contract.
 
-The builder must be started before calling `.ask()`. Model and memory errors reject the request.
+The agent must be started before calling `.ask()`. Model and memory errors reject the request.

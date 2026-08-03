@@ -9,7 +9,7 @@ sidebar:
 ## Signature
 
 ```ts
-builder.memory(driver: XsafMemoryDriver): XsafBuilder
+agent.memory(driver: XsafMemoryDriver): XsafAgent
 ```
 
 The memory driver stores ordered model messages by session ID.
@@ -17,7 +17,7 @@ The memory driver stores ordered model messages by session ID.
 ## Usage
 
 ```ts
-builder.memory({
+agent.memory({
   async get(sessionId) {
     return database.readMessages(sessionId);
   },

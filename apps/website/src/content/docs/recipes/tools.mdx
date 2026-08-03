@@ -126,7 +126,7 @@ The callback receives validated input and `{ tool, sessionId }`. Returning `fals
 Register a privileged handler separately from ordinary event telemetry:
 
 ```ts
-const builder = xsaf
+const agent = xsaf
   .agent(config)
   .approve(async (request) => {
     return approvalService.decide(request);
@@ -191,7 +191,7 @@ Executable local, delegated, and MCP tools require an explicit sandbox. XSAF nev
 ### Register a sandbox
 
 ```ts
-const builder = xsaf.agent(config).sandbox(productionSandbox).tool(tool);
+const agent = xsaf.agent(config).sandbox(productionSandbox).tool(tool);
 ```
 
 A tool or delegate can instead set its own `sandbox`. A default sandbox is still required for MCP tools because their definitions come from the remote server.
@@ -220,7 +220,7 @@ For tests and code you fully trust, opt out of isolation deliberately:
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const builder = xsaf.agent(config).sandbox(local());
+const agent = xsaf.agent(config).sandbox(local());
 ```
 
 `local()` executes the function in the current JavaScript process. It provides **no filesystem, network, shell, memory, or process isolation**. A timeout only aborts the signal cooperatively; it cannot forcibly terminate arbitrary host code.
@@ -230,16 +230,6 @@ const builder = xsaf.agent(config).sandbox(local());
 Use `@xsaf/agent/sandbox/local` only when host-process execution is acceptable. Register an isolation driver for untrusted code or privileged operations.
 
 </Aside>
-
-### Compatibility host adapter
-
-```ts
-import host from "@xsaf/agent/sandbox/host";
-
-const unsafe = host({ allowUnsafeHostExecution: true });
-```
-
-This compatibility adapter also runs in the host process and requires the literal acknowledgement. Its `fs`, `network`, and `shell` permission fields are descriptive and are not enforcement.
 
 ### Secure defaults
 
