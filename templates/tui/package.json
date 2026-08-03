@@ -13,6 +13,7 @@
     "xsaf": "https://pkg.pr.new/ilhajs/xsaf@main"
   },
   "devDependencies": {
+    "@types/node": "^24",
     "tsdown": "^0.22.14"
   },
   "engines": {
