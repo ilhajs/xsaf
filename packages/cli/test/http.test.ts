@@ -92,8 +92,6 @@ describe("standalone oRPC agent", () => {
     serve(procedure);
 
     const agent = httpAgent({ url: "http://localhost:3000" });
-    const result = await agent.invoke("hello");
-    if (!("textStream" in result)) throw new Error("Expected a streaming response");
-    await expect(collect(result.textStream)).rejects.toThrow("Unauthorized");
+    await expect(agent.invoke("hello")).rejects.toThrow("Unauthorized");
   });
 });

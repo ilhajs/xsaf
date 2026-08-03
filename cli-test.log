@@ -1,0 +1,25 @@
+bun test v1.3.14 (0d9b296a)
+
+packages/cli/test/http.test.ts:
+(pass) standalone oRPC agent > streams text and forwards remote lifecycle events [8.98ms]
+163 |     return false;
+164 |   }
+165 |   return "defined" in json && typeof json.defined === "boolean" && "code" in json && typeof json.code === "string" && "status" in json && typeof json.status === "number" && isORPCErrorStatus(json.status) && "message" in json && typeof json.message === "string";
+166 | }
+167 | function createORPCErrorFromJson(json, options = {}) {
+168 |   return new ORPCError(json.code, {
+               ^
+error: Unauthorized
+ defined: false,
+  status: 401,
+    data: undefined,
+    code: "UNAUTHORIZED"
+
+      at createORPCErrorFromJson (/home/ryuz/Alpine/Developer/xsaf/node_modules/.bun/@orpc+client@1.14.13/node_modules/@orpc/client/dist/shared/client.DexhfmWd.mjs:168:10)
+      at decode (/home/ryuz/Alpine/Developer/xsaf/node_modules/.bun/@orpc+client@1.14.13/node_modules/@orpc/client/dist/shared/client.0ydsaRZW.mjs:312:15)
+(fail) standalone oRPC agent > surfaces oRPC authentication failures [0.73ms]
+
+ 1 pass
+ 1 fail
+ 4 expect() calls
+Ran 2 tests across 1 file. [52.00ms]

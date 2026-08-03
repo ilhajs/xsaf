@@ -321,15 +321,17 @@ describe("runtime, memory, and channels", () => {
       init?: Parameters<typeof fetch>[1],
     ) => {
       const req = new Request(input, init);
+      const headers = new Headers(req.headers);
+      headers.set("host", "localhost");
       return builder.app.request(req.url, {
         method: req.method,
-        headers: req.headers,
+        headers,
         body: req.body,
       });
     }) as unknown as typeof fetch;
 
     const client = createChatClient(fetchImpl);
-    await expect(client({ sessionId: "http-chat", text: "hello" })).rejects.toThrow("UNAUTHORIZED");
+    await expect(client({ sessionId: "http-chat", text: "hello" })).rejects.toThrow("Unauthorized");
 
     const authClient = createChatClient(fetchImpl, "test-key");
     const iterator = await authClient({ sessionId: "http-chat", text: "hello" });
@@ -369,9 +371,11 @@ describe("runtime, memory, and channels", () => {
       init?: Parameters<typeof fetch>[1],
     ) => {
       const req = new Request(input, init);
+      const headers = new Headers(req.headers);
+      headers.set("host", "localhost");
       return builder.app.request(req.url, {
         method: req.method,
-        headers: req.headers,
+        headers,
         body: req.body,
       });
     }) as unknown as typeof fetch;
