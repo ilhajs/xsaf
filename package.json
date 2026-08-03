@@ -3,13 +3,14 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "templates/*"
   ],
   "type": "module",
   "scripts": {
-    "typecheck": "bun run --cwd packages/xsaf typecheck",
-    "test": "bun test packages/xsaf/test",
-    "build": "bun run --cwd packages/xsaf build",
+    "typecheck": "bun run --filter './packages/*' typecheck",
+    "test": "bun run --filter './packages/*' test",
+    "build": "bun run --filter './packages/*' build",
     "lint": "oxlint",
     "fmt": "oxfmt --write .",
     "fmt:check": "oxfmt --check .",

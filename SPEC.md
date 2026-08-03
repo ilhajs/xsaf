@@ -85,7 +85,7 @@ The default memory driver is in-memory. Drivers may provide durable storage. Req
 
 ## Delegation
 
-`.asAgent(name)` seals a reusable agent. `.delegate()` exposes it as a model-visible tool. Parent history is not forwarded unless `passContext: true`. Delegate lifecycle events are emitted on the parent event bus.
+Agents may define a snake_case `name` and description in `AgentConfig`. `.asAgent()` seals a named reusable agent; compatibility arguments may override its configured identity. `.delegate()` exposes it as a model-visible tool. Parent history is not forwarded unless `passContext: true`. Delegate lifecycle events are emitted on the parent event bus.
 
 ## Scheduling
 

@@ -134,7 +134,7 @@ export function toModelTool(
           sessionId: context.sessionId,
         });
         try {
-          return await withTimeout(
+          const result = await withTimeout(
             async (timeoutSignal) => {
               const signal = combineSignals(timeoutSignal, options?.signal);
               executionSignal = signal;
@@ -150,6 +150,12 @@ export function toModelTool(
             config.timeout,
             config.name,
           );
+          await context.events.emit({
+            type: "tool.completed",
+            tool: config.name,
+            sessionId: context.sessionId,
+          });
+          return result;
         } catch (error) {
           lastError = error;
           await context.events.emit({

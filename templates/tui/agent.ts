@@ -1,0 +1,44 @@
+import tui from "@xsaf/tui";
+import { serve } from "srvx";
+import { xsaf } from "xsaf";
+import mockModel from "xsaf/model/mock";
+
+const model = mockModel({
+  response(request) {
+    const prompt = request.messages.findLast((message) => message.role === "user")?.content;
+    return { text: `Mock assistant received: ${prompt ?? ""}` };
+  },
+});
+
+const builder = xsaf
+  .agent({
+    name: "xsaf",
+    description: "A deterministic interactive example agent.",
+    model: "mock/model",
+    baseURL: "mock://local",
+    apiKey: "not-used",
+    persona: "You are a deterministic test agent.",
+    stream: false,
+    modelAdapter: model,
+  })
+  .serve({ transport: "http", path: "/mcp" });
+
+await builder.start();
+
+const server = serve({
+  fetch: (request) => builder.fetch(request),
+  port: Number(process.env.PORT ?? 3000),
+});
+
+const chat = tui({
+  agent: builder,
+  async onExit() {
+    await server.close();
+    await builder.stop();
+  },
+});
+
+process.on("SIGINT", () => void chat.stop());
+process.on("SIGTERM", () => void chat.stop());
+
+chat.start();

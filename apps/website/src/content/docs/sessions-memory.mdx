@@ -37,7 +37,7 @@ Node.js deployments need a server adapter that translates incoming requests to w
 ### Compose with Hono
 
 ```ts
-const agent = builder.asAgent("http_agent");
+const agent = builder.asAgent(); // builder was configured with name: "http_agent"
 
 agent.app.get("/ready", (context) => {
   return context.json({ ready: true });

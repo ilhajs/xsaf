@@ -2,7 +2,7 @@
 title: API reference
 description: Published imports, public methods, structural contracts, and events in XSAF 0.1.0-alpha.0.
 sidebar:
-  order: 8
+  order: 9
 ---
 
 XSAF is ESM-only. Import core runtime symbols and contracts from `xsaf`; use published subpaths for bundled adapters.
@@ -42,7 +42,9 @@ builder
 Terminal and runtime methods:
 
 ```ts
-builder.asAgent(name, description?): XsafAgent
+builder.name: string | undefined
+builder.description: string | undefined
+builder.asAgent(name?, description?): XsafAgent
 builder.start(): Promise<XsafAgent>
 builder.stop(): Promise<void>
 builder.invoke(prompt, sessionId?): Promise<InvokeResult>
@@ -53,7 +55,7 @@ builder.app
 builder.channels
 ```
 
-Runtime use through `builder` requires successful startup. `.asAgent()` returns a sealed agent for reuse and delegation.
+Runtime use through `builder` requires successful startup. `.asAgent()` returns a sealed agent for reuse and delegation, using the configured name and description unless compatibility override arguments are supplied.
 
 ## Agent API
 
@@ -246,6 +248,7 @@ Handlers can be synchronous or asynchronous. Event failures are isolated so they
 | Event                 | Payload fields               |
 | --------------------- | ---------------------------- |
 | `tool.called`         | `tool`, `sessionId`          |
+| `tool.completed`      | `tool`, `sessionId`          |
 | `tool.failed`         | `tool`, `sessionId`, `error` |
 | `delegate.started`    | `delegate`, `sessionId`      |
 | `delegate.completed`  | `delegate`, `sessionId`      |

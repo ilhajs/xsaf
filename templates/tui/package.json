@@ -1,0 +1,14 @@
+{
+  "name": "@xsaf/template-tui",
+  "private": true,
+  "type": "module",
+  "module": "agent.ts",
+  "scripts": {
+    "start": "bun agent.ts"
+  },
+  "dependencies": {
+    "@xsaf/tui": "0.1.0-alpha.0",
+    "srvx": "^0.12.5",
+    "xsaf": "0.1.0-alpha.0"
+  }
+}

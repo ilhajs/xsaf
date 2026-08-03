@@ -165,6 +165,23 @@ describe("builder and lifecycle", () => {
     await expect(builder.start()).rejects.toThrow("explicit sandbox");
   });
 
+  test("propagates configured agent identity", async () => {
+    const builder = xsaf.agent(
+      config(mockModel(), {
+        name: "main_agent",
+        description: "Primary test agent",
+      }),
+    );
+    expect(builder.name).toBe("main_agent");
+    expect(builder.description).toBe("Primary test agent");
+    const agent = builder.asAgent();
+    expect(agent.name).toBe("main_agent");
+    expect(agent.description).toBe("Primary test agent");
+    expect(() => xsaf.agent(config(mockModel(), { name: "Not Valid" }))).toThrow(
+      "snake_case agent name",
+    );
+  });
+
   test("coalesces concurrent lifecycle calls", async () => {
     let listens = 0;
     let closes = 0;
@@ -370,6 +387,7 @@ describe("tool pipeline", () => {
       return { text: JSON.stringify(value) };
     });
     const approvals: string[] = [];
+    const completed: string[] = [];
     const builder = xsaf
       .agent(config(adapter))
       .sandbox({
@@ -395,12 +413,16 @@ describe("tool pipeline", () => {
       .on("approval.required", (event) => {
         approvals.push(event.tool);
       })
+      .on("tool.completed", (event) => {
+        completed.push(event.tool);
+      })
       .approve(() => true);
     await builder.start();
     expect((await read(await builder.invoke("run"))).text).toBe("4");
     expect(attempts).toBe(2);
     expect(sandboxRuns).toBe(2);
     expect(approvals).toEqual(["double_value"]);
+    expect(completed).toEqual(["double_value"]);
     await builder.stop();
   });
 

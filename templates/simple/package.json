@@ -1,0 +1,10 @@
+{
+  "name": "@xsaf/template-simple",
+  "private": true,
+  "type": "module",
+  "module": "agent.ts",
+  "dependencies": {
+    "srvx": "^0.12.5",
+    "xsaf": "0.1.0-alpha.0"
+  }
+}

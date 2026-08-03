@@ -1,8 +1,6 @@
 import type { Hono } from "hono";
 import type { StandardSchemaV1, XsafToolSchema } from "./standard-schema";
-
 export type MaybePromise<T> = T | Promise<T>;
-
 export interface Message {
   readonly role: "system" | "user" | "assistant" | "tool";
   readonly content: string;
@@ -10,13 +8,11 @@ export interface Message {
   readonly toolCallId?: string;
   readonly meta?: Readonly<Record<string, unknown>>;
 }
-
 export interface InboundMessage {
   readonly sessionId: string;
   readonly text: string;
   readonly meta?: Readonly<Record<string, unknown>>;
 }
-
 export type ChannelTarget = string | Readonly<Record<string, unknown>>;
 export type ChannelPayload =
   | string
@@ -25,7 +21,6 @@ export type ChannelPayload =
       readonly text: string;
       readonly meta?: unknown;
     };
-
 export interface ChannelContext {
   /** Shared Hono request backbone for HTTP-capable channels. */
   readonly app: Hono;
@@ -35,45 +30,46 @@ export interface ChannelContext {
   dispatch(message: InboundMessage): Promise<void>;
   emit(event: XsafEvent): Promise<void>;
 }
-
 export interface XsafChannelDriver {
   readonly name: string;
   listen(context: ChannelContext): MaybePromise<void>;
   send(target: ChannelTarget, payload: ChannelPayload): Promise<void>;
   close?(): Promise<void>;
 }
-
 export interface XsafMemoryDriver {
   get(sessionId: string): Promise<Message[]>;
   append(sessionId: string, message: Message): Promise<void>;
   clear(sessionId: string): Promise<void>;
   close?(): Promise<void>;
 }
-
 export interface SandboxPermissions {
   readonly fs?: boolean | readonly string[];
   readonly network?: boolean | readonly string[];
   readonly shell?: boolean;
 }
-
 export interface XsafSandboxDriver {
   readonly name: string;
   readonly permissions?: SandboxPermissions;
   run(
     fn: (...args: unknown[]) => Promise<unknown>,
     args: unknown[],
-    options?: { readonly signal?: AbortSignal },
+    options?: {
+      readonly signal?: AbortSignal;
+    },
   ): Promise<unknown>;
   close?(): Promise<void>;
 }
-
 export interface ModelTool {
   readonly name: string;
   readonly description: string;
   readonly input: XsafToolSchema;
-  execute(input: unknown, options?: { readonly signal?: AbortSignal }): Promise<unknown>;
+  execute(
+    input: unknown,
+    options?: {
+      readonly signal?: AbortSignal;
+    },
+  ): Promise<unknown>;
 }
-
 export interface ModelRequest {
   readonly model: string;
   readonly baseURL: string;
@@ -83,34 +79,32 @@ export interface ModelRequest {
   readonly maxSteps: number;
   readonly reasoning: "none" | "low" | "high";
 }
-
 export interface ModelResponse {
   readonly text: string;
   readonly usage?: Readonly<Record<string, number>>;
   readonly raw?: unknown;
 }
-
 export interface ModelStreamResponse {
   readonly textStream: AsyncIterable<string>;
   readonly usage?: Promise<Readonly<Record<string, number>> | undefined>;
   readonly raw?: unknown;
 }
-
 export interface XsafModelAdapter {
   generate(request: ModelRequest): Promise<ModelResponse>;
   stream?(request: ModelRequest): ModelStreamResponse | Promise<ModelStreamResponse>;
   ask?<Output>(request: ModelRequest, schema: StandardSchemaV1<unknown, Output>): Promise<Output>;
 }
-
 export type ApprovalFn<Input = unknown> = {
   bivarianceHack(
     input: Input,
-    context: { readonly tool: string; readonly sessionId: string },
+    context: {
+      readonly tool: string;
+      readonly sessionId: string;
+    },
   ): MaybePromise<boolean>;
 }["bivarianceHack"];
 export type Approval<Input = unknown> = "auto" | "human" | ApprovalFn<Input>;
 export type HumanApprovalHandler = ApprovalFn<unknown>;
-
 export interface ToolConfig<Schema extends XsafToolSchema = XsafToolSchema> {
   readonly name: string;
   readonly description: string;
@@ -125,12 +119,10 @@ export interface ToolConfig<Schema extends XsafToolSchema = XsafToolSchema> {
   readonly timeout?: number;
   readonly sandbox?: XsafSandboxDriver;
 }
-
 export interface ToolExecutionContext {
   readonly sessionId: string;
   readonly signal?: AbortSignal;
 }
-
 export interface AgentConfig {
   /** Stable snake_case identity used by delegates, MCP, and presentation adapters. */
   readonly name?: string;
@@ -147,29 +139,25 @@ export interface AgentConfig {
   /** Injection seam used by deterministic scheduler tests. */
   readonly scheduler?: XsafSchedulerDriver;
 }
-
 export interface AgentResult {
   readonly text: string;
   readonly usage?: Readonly<Record<string, number>>;
 }
-
 export interface AgentStreamResult {
   readonly textStream: AsyncIterable<string>;
   readonly completed: Promise<AgentResult>;
 }
-
 export type InvokeResult = AgentResult | AgentStreamResult;
-
 export interface DelegateOptions {
   readonly passContext?: boolean;
-  readonly approval?: Approval<{ readonly prompt: string }>;
+  readonly approval?: Approval<{
+    readonly prompt: string;
+  }>;
   readonly sandbox?: XsafSandboxDriver;
 }
-
 export interface McpToolDefinition extends Omit<ToolConfig, "approval"> {
   readonly approval?: Approval;
 }
-
 export interface McpConnection {
   readonly tools?: readonly McpToolDefinition[];
   readonly resources?: {
@@ -179,18 +167,15 @@ export interface McpConnection {
     get(name: string, args?: Readonly<Record<string, unknown>>): Promise<string>;
   };
 }
-
 export interface McpContext {
   emit(event: XsafEvent): Promise<void>;
 }
-
 export interface XsafMcpDriver {
   readonly name: string;
   readonly trust?: "trusted" | "untrusted";
   connect(context: McpContext): Promise<McpConnection | void>;
   close?(): Promise<void>;
 }
-
 export interface ServeConfig {
   readonly transport: "http";
   readonly path?: string;
@@ -199,7 +184,6 @@ export interface ServeConfig {
   /** Overrides the built-in Hono + MCP HTTP backbone. Required for stdio. */
   readonly driver?: XsafServeDriver;
 }
-
 export interface XsafServeDriver {
   start(context: {
     readonly config: Omit<ServeConfig, "driver">;
@@ -208,7 +192,6 @@ export interface XsafServeDriver {
   }): Promise<void>;
   close?(): Promise<void>;
 }
-
 export interface ScheduleConfig {
   readonly cron: string;
   readonly prompt: string | (() => Promise<string>);
@@ -218,15 +201,12 @@ export interface ScheduleConfig {
   readonly timezone?: string;
   readonly runImmediately?: boolean;
 }
-
 export interface ScheduledTask {
   close(): Promise<void>;
 }
-
 export interface XsafSchedulerDriver {
   schedule(config: ScheduleConfig, run: () => Promise<void>): Promise<ScheduledTask>;
 }
-
 export type XsafEvent =
   | {
       readonly type: "tool.called";
@@ -269,9 +249,18 @@ export type XsafEvent =
       readonly tool: string;
       readonly sessionId: string;
     }
-  | { readonly type: "mcp.connected"; readonly server: string }
-  | { readonly type: "heartbeat.fired"; readonly sessionId: string }
-  | { readonly type: "heartbeat.completed"; readonly sessionId: string }
+  | {
+      readonly type: "mcp.connected";
+      readonly server: string;
+    }
+  | {
+      readonly type: "heartbeat.fired";
+      readonly sessionId: string;
+    }
+  | {
+      readonly type: "heartbeat.completed";
+      readonly sessionId: string;
+    }
   | {
       readonly type: "heartbeat.failed";
       readonly sessionId: string;
@@ -288,7 +277,11 @@ export type XsafEvent =
       readonly tool: string;
       readonly reason: string;
     };
-
 export type EventType = XsafEvent["type"];
-export type EventFor<Type extends EventType> = Extract<XsafEvent, { readonly type: Type }>;
+export type EventFor<Type extends EventType> = Extract<
+  XsafEvent,
+  {
+    readonly type: Type;
+  }
+>;
 export type EventHandler<Type extends EventType> = (event: EventFor<Type>) => MaybePromise<unknown>;

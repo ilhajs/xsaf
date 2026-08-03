@@ -59,6 +59,8 @@ const model = mockModel({
 const channel = mockChannel();
 const builder = xsaf
   .agent({
+    name: "mock_assistant",
+    description: "A deterministic local assistant.",
     model: "mock/model",
     baseURL: "mock://local",
     apiKey: "not-used",
@@ -77,6 +79,25 @@ await builder.stop();
 ```
 
 Move from the mock adapter to xsAI-backed models without changing the surrounding agent architecture.
+
+## Optional terminal chat UI
+
+Install `@xsaf/tui` for a polished Pi-powered terminal experience with a multiline prompt, Markdown history, streaming responses, tool and delegate statuses, and customizable themes:
+
+```sh
+bun add xsaf @xsaf/tui
+```
+
+```ts
+import tui from "@xsaf/tui";
+
+const chat = tui({
+  agent: builder,
+  onExit: () => builder.stop(),
+});
+
+chat.start();
+```
 
 ## A runtime that fits your application
 
@@ -138,7 +159,8 @@ See the [Roadmap](https://xsaf.ilha.build/roadmap) for current boundaries and pl
 ## Repository
 
 ```text
-packages/xsaf/   Framework source, tests, examples, and package docs
+packages/xsaf/   Framework core, adapters, and tests
+packages/tui/    Optional Pi-powered terminal chat UI
 apps/website/    Nimbus documentation site
 SPEC.md          Alpha behavior and scope
 ```

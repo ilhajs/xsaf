@@ -98,7 +98,7 @@ Keep public drivers narrow and structurally typed. Tool schemas must implement b
 Initial events:
 
 ```text
-tool.called tool.failed delegate.started delegate.completed
+tool.called tool.completed tool.failed delegate.started delegate.completed
 message.sent approval.required approval.granted mcp.connected
 heartbeat.fired heartbeat.completed heartbeat.failed sandbox.escalated sandbox.denied
 ```

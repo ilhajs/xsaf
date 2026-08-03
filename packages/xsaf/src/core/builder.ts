@@ -29,6 +29,9 @@ function validateConfig(config: AgentConfig): void {
   required("baseURL", config.baseURL);
   required("apiKey", config.apiKey);
   required("persona", config.persona);
+  if (config.name !== undefined && !TOOL_NAME.test(config.name))
+    throw new TypeError(`Invalid snake_case agent name: ${config.name}`);
+  if (config.description !== undefined) required("description", config.description);
   if (
     config.maxSteps !== undefined &&
     (!Number.isInteger(config.maxSteps) || config.maxSteps < 1)
@@ -84,7 +87,10 @@ export class XsafBuilder {
 
   delegate(agent: XsafAgent, options: DelegateOptions = {}): this {
     this.#assertConfigurable();
-    if (!agent.name) throw new TypeError("Delegated agents must be sealed with asAgent(name)");
+    if (!agent.name)
+      throw new TypeError(
+        "Delegated agents must have a configured name and be sealed with asAgent()",
+      );
     this.#reserveName("delegate", agent.name);
     this.#resources.push({ type: "delegate", value: { agent, options } });
     return this;
@@ -147,9 +153,10 @@ export class XsafBuilder {
     return this;
   }
 
-  asAgent(name: string, description?: string): XsafAgent {
+  asAgent(name = this.#config.name, description = this.#config.description): XsafAgent {
     this.#assertConfigurable();
     this.#assertExecutionSandbox();
+    if (!name) throw new TypeError("Agent name is required before sealing with asAgent()");
     if (!TOOL_NAME.test(name)) throw new TypeError(`Invalid snake_case agent name: ${name}`);
     this.#sealed = true;
     return new XsafAgent(this.#definition(name, description));
@@ -193,6 +200,14 @@ export class XsafBuilder {
     return this.#runtime.ask(prompt, schema, sessionId);
   }
 
+  get name(): string | undefined {
+    return this.#config.name;
+  }
+
+  get description(): string | undefined {
+    return this.#config.description;
+  }
+
   get app(): XsafAgent["app"] {
     if (!this.#runtime) throw new Error("Agent must be started before accessing the Hono app");
     return this.#runtime.app;
@@ -214,7 +229,7 @@ export class XsafBuilder {
     );
   }
 
-  #definition(name?: string, description?: string): AgentDefinition {
+  #definition(name = this.#config.name, description = this.#config.description): AgentDefinition {
     return {
       config: this.#config,
       events: this.#events,

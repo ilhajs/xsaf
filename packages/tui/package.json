@@ -1,0 +1,37 @@
+{
+  "name": "@xsaf/tui",
+  "version": "0.1.0-alpha.0",
+  "description": "Interactive terminal chat UI for XSAF agents",
+  "homepage": "https://xsaf.ilha.build",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilhajs/xsaf.git",
+    "directory": "packages/tui"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-tui": "^0.83.0"
+  },
+  "peerDependencies": {
+    "xsaf": "^0.1.0-alpha.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

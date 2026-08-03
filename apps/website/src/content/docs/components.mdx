@@ -12,6 +12,8 @@ The builder is XSAF's primary API. It records configuration without performing I
 
 ```ts
 interface AgentConfig {
+  name?: string;
+  description?: string;
   model: string;
   baseURL: string;
   apiKey: string;
@@ -24,7 +26,7 @@ interface AgentConfig {
 }
 ```
 
-`model`, `baseURL`, `apiKey`, and `persona` must be nonblank. `maxSteps` defaults to `3`, `stream` to `true`, and `reasoning` to `"none"`. Invalid required configuration throws during `.agent()` rather than during startup.
+`model`, `baseURL`, `apiKey`, and `persona` must be nonblank. Optional agent names must be lowercase snake_case; descriptions must be nonblank when provided. `maxSteps` defaults to `3`, `stream` to `true`, and `reasoning` to `"none"`. Invalid required configuration throws during `.agent()` rather than during startup.
 
 ## Configure before startup
 
@@ -77,10 +79,16 @@ A started builder exposes `.invoke()`, `.run()`, `.ask()`, `.app`, and `.fetch()
 ## Seal a reusable agent
 
 ```ts
-const researcher = xsaf.agent(researchConfig).asAgent("researcher", "Research a focused question");
+const researcher = xsaf
+  .agent({
+    ...researchConfig,
+    name: "researcher",
+    description: "Research a focused question",
+  })
+  .asAgent();
 ```
 
-`.asAgent()` seals configuration without starting the agent. A sealed agent can be delegated to another agent. The name must be lowercase snake_case. Tools, drivers, delegates, and schedules cannot be changed after sealing. Event and privileged approval handlers may still be registered with `.on()` and `.approve()`.
+`.asAgent()` seals configuration without starting the agent and uses its configured name and description. A sealed agent can be delegated to another agent. For alpha compatibility, `.asAgent(name, description)` can override the configured identity. The name must be lowercase snake_case. Tools, drivers, delegates, and schedules cannot be changed after sealing. Event and privileged approval handlers may still be registered with `.on()` and `.approve()`.
 
 ## Unified request path
 

@@ -11,11 +11,15 @@ Delegation turns a sealed `XsafAgent` into a parent model tool. The child keeps 
 
 ```ts
 const researcher = xsaf
-  .agent(researchConfig)
-  .asAgent("researcher", "Research one focused question");
+  .agent({
+    ...researchConfig,
+    name: "researcher",
+    description: "Research one focused question",
+  })
+  .asAgent();
 ```
 
-The name must be lowercase snake_case and shares the parent's model-visible namespace with local tools. The description defaults to `Delegate a task to <name>` when omitted.
+The configured name must be lowercase snake_case and shares the parent's model-visible namespace with local tools. The description defaults to `Delegate a task to <name>` when omitted. `.asAgent(name, description)` remains available as an alpha compatibility override.
 
 ## Register it on a parent
 
