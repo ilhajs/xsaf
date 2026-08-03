@@ -14,8 +14,9 @@ import {
   TUI,
   // pi-lens-ignore: ts:2307
 } from "@earendil-works/pi-tui";
-// pi-lens-ignore: ts:2307
-import type { EventHandler, EventType, InvokeResult, XsafEvent } from "@xsaf/agent";
+import type { InvokeResult, TuiAgent, XsafEvent } from "./protocol";
+
+export type { TuiAgent } from "./protocol";
 
 interface XsafTuiTheme {
   readonly accent: (text: string) => string;
@@ -26,12 +27,6 @@ interface XsafTuiTheme {
   readonly dim: (text: string) => string;
   readonly editor: EditorTheme;
   readonly markdown: MarkdownTheme;
-}
-
-export interface TuiAgent {
-  readonly name?: string;
-  invoke(prompt: string, sessionId?: string): Promise<InvokeResult>;
-  on<Type extends EventType>(type: Type, handler: EventHandler<Type>): unknown;
 }
 
 export interface XsafTuiOptions {
@@ -119,7 +114,7 @@ class TuiControllerImpl implements TuiController {
       sessionId: options.sessionId ?? "tui",
     };
     if (!options.agent.name)
-      throw new TypeError("@xsaf/tui requires an agent configured with a name");
+      throw new TypeError("@xsaf/cli requires an agent configured with a name");
     this.#agentName = options.agent.name;
     this.#theme = defaultTheme();
     this.#tui = new TUI(options.terminal ?? new ProcessTerminal());
@@ -155,6 +150,7 @@ class TuiControllerImpl implements TuiController {
     this.#stopping = (async () => {
       if (this.#started) this.#tui.stop();
       this.#started = false;
+      await this.#options.agent.close?.();
       await this.#options.onExit?.();
     })();
     return this.#stopping;

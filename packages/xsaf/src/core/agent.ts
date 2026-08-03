@@ -419,6 +419,7 @@ export class AgentRuntime {
         await resource.value.listen({
           app: this.app,
           dispatch,
+          on: (type, handler) => this.#definition.events.on(type, handler),
           emit: (event) => this.#definition.events.emit(event).then(() => undefined),
         });
         break;

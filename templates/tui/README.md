@@ -1,8 +1,6 @@
-# XSAF TUI template
+### XSAF TUI template
 
-A minimal interactive terminal agent built with XSAF, `@xsaf/tui`, and srvx.
-
-## Run
+## Run the server
 
 From `templates/tui`:
 
@@ -12,7 +10,12 @@ npm install
 npm run dev
 ```
 
-Development runs `agent.ts` directly with Node's watch mode, avoiding a full bundle and process-tree restart after every edit.
+Nitro owns the only agent instance and serves:
+
+- `GET /health` — readiness response
+- `POST /chat` — authenticated streaming chat endpoint
+- `POST /invoke` — invoke the agent over HTTP
+- `/mcp` — MCP v2 endpoint
 
 For a production-style build:
 
@@ -21,17 +24,26 @@ npm run build
 npm start
 ```
 
-`@xsaf/tui` owns the prompt, Markdown history, streaming output, and tool/delegate statuses. Type a prompt in the bordered multiline editor and press Enter to submit. Use Shift+Enter for a new line. Submitted prompts are kept in editor history. User and agent messages render as themed Markdown, including lists, links, quotes, and code blocks, with an animated working indicator while the agent responds. The same XSAF agent remains available through an srvx HTTP server.
+Set a different Nitro port with `PORT=4000 npm start`.
 
-- `GET /health` — readiness response
-- `POST /invoke` — invoke the agent over HTTP
-- `/mcp` — MCP v2 endpoint
-- `Ctrl+C` — stop the TUI, HTTP server, and agent cleanly
+## Open the standalone TUI
 
-The default model is deterministic and makes no network or AI-provider requests. Replace `mockModel` in `agent.ts` with your model configuration when you are ready to connect a provider.
-
-Set a different port with:
+Install `@xsaf/cli` globally or run the template's installed binary from another terminal:
 
 ```sh
-PORT=4000 npm start
+API_KEY=asd123 xsaf -u http://localhost:3000
+```
+
+```sh
+API_KEY=asd123 npx --package @xsaf/cli xsaf -u http://localhost:3000
+```
+
+The CLI owns stdin and stdout while Nitro remains a headless server. Prompts, streamed response chunks, tool statuses, and delegate statuses travel over the authenticated `/chat` SSE response. The CLI's `API_KEY` must match `XSAF_CHAT_KEY` in the server environment.
+
+Useful options:
+
+```text
+-u, --url       XSAF server base URL
+-s, --session   Session identifier (default: tui)
+--name           Agent name shown in the terminal
 ```

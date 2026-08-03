@@ -64,18 +64,20 @@ Inbound channel messages dispatch through the normal request path. The result is
 ```ts
 import http from "@xsaf/agent/channel/http";
 
-const channel = http({ name: "web", path: "/chat" });
+const channel = http({ name: "web", path: "/chat", apiKey: process.env.API_KEY });
 const agent = xsaf.agent(config).channel(channel);
 ```
 
 ```http
 POST /chat
+Accept: text/event-stream
+Authorization: Bearer <api-key>
 Content-Type: application/json
 
 {"sessionId":"customer-1","text":"Hello"}
 ```
 
-String and object results return JSON. Streaming results return Server-Sent Events with one `data` event per chunk. A missing session ID is generated with `crypto.randomUUID()`.
+Requests accepting `text/event-stream` receive typed events for response chunks and tool/delegate activity. Other clients retain JSON responses for string and object results. A missing session ID is generated with `crypto.randomUUID()`. When `apiKey` is configured, the route requires the matching bearer token.
 
 The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `@xsaf/agent/channel/mock` for deterministic in-process tests; see [Testing](/recipes/testing).
 

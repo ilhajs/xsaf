@@ -277,17 +277,81 @@ describe("runtime, memory, and channels", () => {
     await builder.stop();
   });
 
-  test("serves the bundled HTTP channel through Hono", async () => {
-    const channel = http({ path: "/chat" });
+  test("serves authenticated JSON and streaming HTTP channel responses", async () => {
+    const channel = http({ path: "/chat", apiKey: "test-key" });
     const builder = xsaf.agent(config(mockModel({ response: "http-channel" }))).channel(channel);
     await builder.start();
-    const response = await builder.app.request("http://localhost/chat", {
+    const unauthorized = await builder.app.request("http://localhost/chat", {
       method: "POST",
       headers: { host: "localhost", "content-type": "application/json" },
       body: JSON.stringify({ sessionId: "http-chat", text: "hello" }),
     });
+    expect(unauthorized.status).toBe(401);
+
+    const response = await builder.app.request("http://localhost/chat", {
+      method: "POST",
+      headers: {
+        host: "localhost",
+        authorization: "Bearer test-key",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ sessionId: "http-chat", text: "hello" }),
+    });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ text: "http-channel", sessionId: "http-chat" });
+
+    const streamed = await builder.app.request("http://localhost/chat", {
+      method: "POST",
+      headers: {
+        host: "localhost",
+        accept: "text/event-stream",
+        authorization: "Bearer test-key",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ sessionId: "http-stream", text: "hello" }),
+    });
+    expect(streamed.status).toBe(200);
+    expect(await streamed.text()).toContain('event: message.delta\ndata: {"text":"http-channel"}');
+    await builder.stop();
+  });
+
+  test("streams tool lifecycle events through the HTTP channel", async () => {
+    const adapter = new MockAdapter(async (request) => {
+      const tool = request.tools.find((candidate) => candidate.name === "weather_lookup");
+      if (!tool) throw new Error("weather_lookup tool missing");
+      await tool.execute({ value: 1 });
+      return { text: "sunny" };
+    });
+    const builder = xsaf
+      .agent(config(adapter))
+      .sandbox(local())
+      .tool({
+        name: "weather_lookup",
+        description: "looks up weather",
+        input: objectSchema(),
+        async execute() {
+          return { conditions: "sunny" };
+        },
+      })
+      .channel(http({ path: "/chat" }));
+    await builder.start();
+    const response = await builder.app.request("http://localhost/chat", {
+      method: "POST",
+      headers: {
+        host: "localhost",
+        accept: "text/event-stream",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ sessionId: "weather", text: "weather" }),
+    });
+    const events = await response.text();
+    expect(events).toContain(
+      'event: tool.called\ndata: {"type":"tool.called","tool":"weather_lookup","sessionId":"weather"}',
+    );
+    expect(events).toContain(
+      'event: tool.completed\ndata: {"type":"tool.completed","tool":"weather_lookup","sessionId":"weather"}',
+    );
+    expect(events).toContain('event: message.delta\ndata: {"text":"sunny"}');
     await builder.stop();
   });
 

@@ -38,6 +38,21 @@ agent.channel({
 
 Channel names must be unique. Channels start in registration order and close in reverse order. Startup performs cleanup if a later channel fails.
 
-Bundled adapters are available from `@xsaf/agent/channel/http` and `@xsaf/agent/channel/mock`. The HTTP channel mounts on the shared Hono app; the mock channel is deterministic and offline.
+Bundled adapters are available from `@xsaf/agent/channel/http` and `@xsaf/agent/channel/mock`. The mock channel is deterministic and offline.
+
+The HTTP channel mounts a streaming chat endpoint on the shared Hono app:
+
+```ts
+import http from "@xsaf/agent/channel/http";
+
+agent.channel(
+  http({
+    path: "/chat",
+    apiKey: process.env.API_KEY,
+  }),
+);
+```
+
+Clients requesting `text/event-stream` receive typed response chunks and tool/delegate lifecycle events. Other clients retain the JSON response behavior. When `apiKey` is configured, the endpoint requires `Authorization: Bearer <key>`.
 
 See [Sessions & Memory](/recipes/sessions-memory) for session serialization and [Testing](/recipes/testing) for the mock channel.

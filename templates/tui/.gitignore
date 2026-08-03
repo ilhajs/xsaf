@@ -4,6 +4,7 @@ node_modules
 # output
 out
 dist
+.output
 *.tgz
 
 # code coverage
@@ -12,6 +13,7 @@ coverage
 
 # logs
 logs
+.nitro.log
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 

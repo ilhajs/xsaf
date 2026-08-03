@@ -1,8 +1,8 @@
-import tui from "@xsaf/tui";
-import { serve } from "srvx";
 import { xsaf } from "@xsaf/agent";
+import http from "@xsaf/agent/channel/http";
 import xsai from "@xsaf/agent/model/xsai";
 import local from "@xsaf/agent/sandbox/local";
+import { defineHandler } from "nitro";
 import { z } from "zod";
 
 // TODO: Fill .env
@@ -11,6 +11,7 @@ const env = z
     XSAF_MODEL: z.string(),
     XSAF_API_KEY: z.string(),
     XSAF_BASE_URL: z.string(),
+    XSAF_CHAT_KEY: z.string().min(1),
   })
   .parse(process.env);
 
@@ -39,7 +40,7 @@ const weatherAdvisor = xsaf
     },
   });
 
-const agent = xsaf
+export const agent = xsaf
   .agent({
     name: "xsaf",
     description: "An interactive example agent with a tool and a delegate.",
@@ -49,24 +50,9 @@ const agent = xsaf
   })
   .sandbox(local())
   .delegate(weatherAdvisor)
+  .channel(http({ path: "/chat", ...{ apiKey: env.XSAF_CHAT_KEY } }))
   .serve({ path: "/mcp" });
 
 await agent.start();
 
-const server = serve({
-  fetch: (request) => agent.fetch(request),
-  port: Number(process.env.PORT ?? 3000),
-});
-
-const chat = tui({
-  agent,
-  async onExit() {
-    await server.close();
-    await agent.stop();
-  },
-});
-
-process.on("SIGINT", () => void chat.stop());
-process.on("SIGTERM", () => void chat.stop());
-
-chat.start();
+export default defineHandler((event) => agent.fetch(event.req));

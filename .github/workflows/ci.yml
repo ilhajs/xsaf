@@ -55,7 +55,7 @@ jobs:
         run: node --input-type=module -e "const m = await import('./dist/index.mjs'); if (!m.xsaf) process.exit(1)"
 
       - name: Smoke test terminal UI with Bun
-        working-directory: packages/tui
+        working-directory: packages/cli
         run: bun -e "import('./dist/index.mjs').then(m => { if (typeof m.default !== 'function') process.exit(1) })"
 
   package-preview:
@@ -81,7 +81,7 @@ jobs:
         run: bun run build
 
       - name: Publish preview with pkg.pr.new
-        run: bunx pkg-pr-new publish './packages/xsaf' './packages/tui'
+        run: bunx pkg-pr-new publish './packages/xsaf' './packages/cli'
 
   docs:
     name: Build and deploy documentation

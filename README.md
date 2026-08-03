@@ -72,24 +72,16 @@ await agent.stop();
 
 Move from the mock adapter to xsAI-backed models without changing the surrounding agent architecture.
 
-## Optional terminal chat UI
+## Standalone terminal chat
 
-Install `@xsaf/tui` for a polished Pi-powered terminal experience with a multiline prompt, Markdown history, streaming responses, tool and delegate statuses, and customizable themes:
+Install the standalone CLI and connect it to an agent exposing the authenticated HTTP channel:
 
 ```sh
-bun add @xsaf/agent @xsaf/tui
+npm install --global @xsaf/cli
+API_KEY=asd123 xsaf -u http://localhost:3000
 ```
 
-```ts
-import tui from "@xsaf/tui";
-
-const chat = tui({
-  agent,
-  onExit: () => agent.stop(),
-});
-
-chat.start();
-```
+The server remains the only owner of the agent. Response chunks and tool/delegate activity stream to the terminal over HTTP without sharing its process or stdout.
 
 ## A runtime that fits your application
 
@@ -152,7 +144,7 @@ See the [Roadmap](https://xsaf.ilha.build/roadmap) for current boundaries and pl
 
 ```text
 packages/xsaf/   Framework core, adapters, and tests
-packages/tui/    Optional Pi-powered terminal chat UI
+packages/cli/    Optional Pi-powered terminal chat UI
 apps/website/    Nimbus documentation site
 SPEC.md          Alpha behavior and scope
 ```

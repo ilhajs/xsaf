@@ -1,56 +1,67 @@
 ---
 title: Terminal UI
-description: Add a responsive interactive terminal chat to a configured XSAF agent.
+description: Connect the standalone XSAF terminal client to a remote agent.
 sidebar:
   order: 4
 ---
 
 ## Install
 
-<PackageManagers pkg="@xsaf/tui" />
+```sh
+npm install --global @xsaf/cli
+```
 
-`@xsaf/tui` requires Node.js 22.19 or newer.
+`@xsaf/cli` requires Node.js 22.19 or newer.
 
-## Start a chat
+## Expose streaming chat
+
+Register the authenticated HTTP channel on the server-owned agent:
 
 ```ts
-import { xsaf } from "@xsaf/agent";
-import mockModel from "@xsaf/agent/model/mock";
-import tui from "@xsaf/tui";
+import http from "@xsaf/agent/channel/http";
 
-const agent = xsaf.agent({
-  name: "workspace_agent",
-  persona: "Be concise.",
-  model: mockModel(),
-});
+const agent = xsaf.agent(config).channel(
+  http({
+    path: "/chat",
+    apiKey: process.env.API_KEY,
+  }),
+);
 
 await agent.start();
+```
 
-const chat = tui({
-  agent,
-  sessionId: "terminal",
-  async onExit() {
-    await agent.stop();
-  },
-});
+The channel streams response chunks and tool/delegate lifecycle events over one SSE response. The agent remains entirely inside the server process.
 
+## Open the standalone client
+
+```sh
+API_KEY=asd123 xsaf -u http://localhost:3000
+```
+
+The CLI uses `API_KEY` as a bearer token. It owns stdin and stdout independently from the HTTP server, so server logs and reloads cannot corrupt terminal rendering.
+
+Useful options:
+
+```text
+-u, --url       XSAF server base URL
+-s, --session   Session identifier (default: tui)
+--name           Agent name shown in the terminal
+```
+
+The UI provides a multiline editor, prompt history, Markdown responses, throttled streaming, bounded history, and live tool/delegate statuses.
+
+## Embedded rendering
+
+Applications that intentionally run an agent in the terminal process can still use the rendering factory:
+
+```ts
+import tui from "@xsaf/cli";
+
+const chat = tui({ agent });
 chat.start();
 ```
 
-The configured agent name labels the header and assistant messages. The UI provides a multiline editor, prompt history, Markdown responses, throttled streaming, bounded history, and tool/delegate status updates.
-
-## Add application output
-
-```ts
-chat.addMessage("System", "Connected to the workspace.");
-chat.setStatus("sync", "Workspace sync", "success");
-```
-
-The controller intentionally does not expose Pi TUI internals or automatic tool results. General event telemetry excludes tool arguments and outputs; display sensitive application output only through an explicit `addMessage()` call.
-
-## Shutdown
-
-`stop()` is asynchronous and idempotent. `Ctrl+C` calls it automatically. Put server and agent cleanup in `onExit` so the terminal, listener, and agent close together.
+The controller exposes `start()`, `stop()`, `submit()`, `addMessage()`, and `setStatus()` without exposing Pi TUI internals.
 
 ## Next steps
 

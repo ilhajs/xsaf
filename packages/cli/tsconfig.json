@@ -4,12 +4,9 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "paths": {
-      "@xsaf/agent": ["../xsaf/src/index.ts"]
-    },
     "lib": ["ES2022", "DOM"],
     "types": ["bun"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

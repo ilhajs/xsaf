@@ -117,7 +117,7 @@ type ChannelTarget = string | Readonly<Record<string, unknown>>;
 type ChannelPayload = string | AsyncIterable<string> | { text: string; meta?: unknown };
 ```
 
-`ChannelContext` includes the shared Hono app, an inbound `dispatch(message)` function, and event emission.
+`ChannelContext` includes the shared Hono app, inbound `dispatch(message)`, lifecycle event subscription through `on(type, handler)`, and event emission.
 
 ### Sandbox
 

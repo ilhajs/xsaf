@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@xsaf/tui": ["./packages/tui/src/index.ts"],
+      "@xsaf/cli": ["./packages/cli/src/index.ts"],
       "@xsaf/agent": ["./packages/xsaf/src/index.ts"]
     }
   }

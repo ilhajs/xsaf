@@ -31,6 +31,8 @@ export interface ChannelContext {
   readonly app: Hono;
   /** Delivers an inbound message into the agent's unified request path. */
   dispatch(message: InboundMessage): Promise<void>;
+  /** Observes lifecycle events, returning an unsubscribe function. */
+  on<Type extends EventType>(type: Type, handler: EventHandler<Type>): () => void;
   emit(event: XsafEvent): Promise<void>;
 }
 
