@@ -95,11 +95,23 @@ const capabilities = [
         </div>
 
         <div class="code-window mt-16 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div class="flex items-center gap-1.5 border-b border-border px-4 py-3">
-            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
-            <span class="ml-2 font-mono text-xs text-muted-foreground">agent.ts</span>
+          <div class="flex items-center border-b border-border px-4 py-2">
+            <div class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+              <span class="ml-2 font-mono text-xs text-muted-foreground">agent.ts</span>
+            </div>
+            <a
+              href="https://stackblitz.com/github/ilhajs/xsaf/tree/main/templates/tui?file=agent.ts"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="ml-auto inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-foreground no-underline transition-colors hover:bg-accent"
+              aria-label="Run the TUI template in StackBlitz"
+            >
+              <Icon name="ph:play-fill" class="h-3.5 w-3.5" />
+              Run
+            </a>
           </div>
           <Code code={example} lang="ts" />
         </div>
