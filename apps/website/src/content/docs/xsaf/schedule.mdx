@@ -1,0 +1,57 @@
+---
+title: .schedule()
+description: Register recurring prompts or delegated work with a scheduler driver.
+sidebar:
+  order: 9
+  label: .schedule()
+---
+
+## Signature
+
+```ts
+builder.schedule(config: ScheduleConfig): XsafBuilder
+```
+
+## Usage
+
+```ts
+const builder = xsaf
+  .agent({
+    ...config,
+    scheduler: new CronScheduler(),
+  })
+  .schedule({
+    cron: "*/15 * * * *",
+    timezone: "UTC",
+    sessionId: "heartbeat:status",
+    prompt: "Check current service status",
+    runImmediately: true,
+    async onResult(result) {
+      console.log(result.text);
+    },
+  });
+```
+
+`prompt` may be a string or an async function. Set `delegate` to route the prompt to a registered child. Scheduled requests use the same model, memory, tools, approvals, and events as [`.invoke()`](/xsaf/invoke).
+
+## Cron syntax
+
+The bundled `CronScheduler` accepts exactly five fields:
+
+```text
+minute hour day-of-month month day-of-week
+```
+
+It supports `*`, comma lists, numeric ranges, `/step`, and combinations such as `*/15`. Valid ranges are minute `0-59`, hour `0-23`, day `1-31`, month `1-12`, and weekday `0-7`, where both `0` and `7` mean Sunday. Timezone defaults to `UTC` and is validated with `Intl.DateTimeFormat`.
+
+## Runtime behavior
+
+- The bundled scheduler checks every 15 seconds.
+- A matching minute fires at most once.
+- A tick is skipped while its previous run is active.
+- `runImmediately` awaits one run during startup.
+- The default session ID is `heartbeat:<cron>`.
+- Streamed results are collected before `onResult`.
+- Failures emit `heartbeat.failed` without crashing the timer callback.
+
+The bundled scheduler is process-local: it provides no distributed locks, persistence, backfill, or durable replay. Inject another structural `XsafSchedulerDriver` through [`.agent()`](/xsaf/agent) when those guarantees are required.

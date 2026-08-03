@@ -1,0 +1,56 @@
+---
+title: .mcp()
+description: Connect an MCP v2 server and merge its tools, resources, and prompts into the agent.
+sidebar:
+  order: 4
+  label: .mcp()
+---
+
+## Signature
+
+```ts
+builder.mcp(driver: XsafMcpDriver): XsafBuilder
+```
+
+## Connect over HTTP
+
+```ts
+import mcp from "@xsaf/agent/mcp";
+
+const remote = mcp({
+  name: "catalog",
+  transport: "http",
+  url: "https://catalog.example.com/mcp",
+  auth: {
+    type: "bearer",
+    token: process.env.CATALOG_TOKEN!,
+  },
+  trust: "untrusted",
+});
+
+const builder = xsaf.agent(config).sandbox(sandbox).mcp(remote);
+```
+
+On startup, the built-in client calls `tools/list`. Discovered tools enter the same model-visible namespace and execution pipeline as local tools and delegates; collisions fail startup. Tool calls use `tools/call`. Connections also support exact `resources/read` requests and `prompts/get` through `agent.prompt(name, args)`.
+
+## Trust and approval
+
+`trust` defaults to `"untrusted"`, so discovered tools require human approval by default. `trust: "trusted"` changes that default to automatic approval. An explicit tool approval policy takes precedence.
+
+Bearer authentication identifies requests to the remote server; it does not make returned definitions or payloads safe. Continue to validate arguments and use an explicit [`.sandbox()`](/xsaf/sandbox).
+
+## Protocol
+
+XSAF supports MCP protocol `2026-07-28` only. The client sends JSON-RPC 2.0 POST requests with `MCP-Protocol-Version`, client metadata, and optional bearer authorization. Legacy traffic is rejected.
+
+The built-in client is stateless HTTP. It parses JSON responses, discovers tools once at connection time, and does not currently decode SSE-formatted MCP responses. Prompt results are returned as a JSON string containing the MCP messages payload.
+
+## Ordering
+
+MCP resources start in declaration order and close in reverse order. Register `.mcp()` before [`.serve()`](/xsaf/serve) when discovered tools must appear in the served tool snapshot.
+
+```ts
+xsaf.agent(config).sandbox(sandbox).mcp(remote).serve({ transport: "http" });
+```
+
+Use [`.serve()`](/xsaf/serve) to expose the agent's tools as an MCP server. See [Tools & Security](/recipes/tools) for approval and sandbox policy.

@@ -1,0 +1,33 @@
+---
+title: .invoke()
+description: Run a prompt through the agent's unified request path.
+sidebar:
+  order: 14
+  label: .invoke()
+---
+
+## Signature
+
+```ts
+builder.invoke(prompt: string, sessionId?: string): Promise<InvokeResult>
+agent.invoke(prompt: string, sessionId?: string): Promise<InvokeResult>
+```
+
+## Usage
+
+```ts
+const result = await agent.invoke("Summarize this conversation", "customer-42");
+
+if ("text" in result) {
+  console.log(result.text);
+} else {
+  for await (const chunk of result.textStream) process.stdout.write(chunk);
+  await result.completed;
+}
+```
+
+The session ID defaults to `"default"`. Requests in one session run serially, while different sessions may run concurrently.
+
+`.invoke()` builds a model request from the persona, stored session messages, configured model, tools, delegates, MCP tools, step limit, and reasoning setting. Tool policy and events use the same path whether invocation came directly, through a channel, from a schedule, by delegation, or through `POST /invoke`.
+
+Streaming results persist the assistant response after consumption completes. See [Sessions & Memory](/recipes/sessions-memory#sessions-and-streaming).

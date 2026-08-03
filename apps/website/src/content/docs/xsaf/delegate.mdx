@@ -1,0 +1,44 @@
+---
+title: .delegate()
+description: Expose a sealed child agent as a model-visible delegation tool.
+sidebar:
+  order: 7
+  label: .delegate()
+---
+
+## Signature
+
+```ts
+builder.delegate(agent: XsafAgent, options?: DelegateOptions): XsafBuilder
+```
+
+## Seal and register a child
+
+```ts
+const researcher = xsaf
+  .agent({
+    ...researchConfig,
+    name: "researcher",
+    description: "Research one focused question",
+  })
+  .asAgent();
+
+const parent = xsaf.agent(parentConfig).sandbox(sandbox).delegate(researcher, {
+  passContext: false,
+  approval: "human",
+});
+```
+
+The child appears to the parent model as a tool accepting `{ prompt: string }`. Its name must be lowercase snake_case and cannot collide with a local or MCP tool. The derived child session ID is `<parent-session>:delegate:<delegate-name>`.
+
+## Context boundary
+
+`passContext` defaults to `false`: the child receives the delegated prompt but not the parent's history, tools, memory driver, sandbox permissions, or channel metadata. Set it to `true` only when the child needs the parent's messages. The child always keeps its own model, tools, resources, and runtime configuration.
+
+## Execution policy
+
+Delegates support `"auto"`, `"human"`, or callback approval. Execution uses the delegate-specific `sandbox` option when supplied, otherwise the parent's default sandbox. Executable delegates require an applicable explicit sandbox.
+
+Starting the parent starts its children. Shutdown closes them through the normal reverse-order lifecycle. The parent emits `delegate.started` and `delegate.completed`; completion is emitted even when the child request fails so telemetry can close the span without exposing the delegated prompt.
+
+Create reusable children with [`.asAgent()`](/xsaf/as-agent), and see [Tools & Security](/recipes/tools) for shared execution policy.

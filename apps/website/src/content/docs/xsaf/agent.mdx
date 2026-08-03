@@ -1,0 +1,57 @@
+---
+title: .agent()
+description: Create an XSAF builder and configure the agent's identity, model, and behavior.
+sidebar:
+  order: 1
+  label: .agent()
+---
+
+## Signature
+
+```ts
+xsaf.agent(config: AgentConfig): XsafBuilder
+```
+
+`.agent()` is the entry point to the fluent API. It validates configuration immediately and performs no model, network, channel, or scheduler work.
+
+## Usage
+
+```ts
+const builder = xsaf.agent({
+  name: "research_agent",
+  description: "Researches focused technical questions",
+  model: "openai/gpt-4.1-mini",
+  baseURL: "https://api.openai.com/v1/",
+  apiKey: process.env.OPENAI_API_KEY!,
+  persona: "Be concise and cite uncertainty.",
+  maxSteps: 3,
+  stream: true,
+  reasoning: "low",
+});
+```
+
+## Configuration
+
+```ts
+interface AgentConfig {
+  name?: string;
+  description?: string;
+  model: string;
+  baseURL: string;
+  apiKey: string;
+  persona: string;
+  maxSteps?: number;
+  stream?: boolean;
+  reasoning?: "none" | "low" | "high";
+  modelAdapter?: XsafModelAdapter;
+  scheduler?: XsafSchedulerDriver;
+}
+```
+
+`model`, `baseURL`, `apiKey`, and `persona` must be nonblank. Names are technical identifiers and must use lowercase snake_case. A provided description must be nonblank. `maxSteps` defaults to `3` and must be a positive integer; `stream` defaults to `true`; `reasoning` defaults to `"none"`.
+
+Use `modelAdapter` to replace the default xsAI adapter—for example, with [`@xsaf/agent/model/mock`](/recipes/testing) in offline tests.
+
+## Next methods
+
+Add capabilities with [`.tool()`](/xsaf/tool), [`.channel()`](/xsaf/channel), [`.memory()`](/xsaf/memory), and [`.sandbox()`](/xsaf/sandbox), then call [`.start()`](/xsaf/start) or [`.asAgent()`](/xsaf/as-agent).

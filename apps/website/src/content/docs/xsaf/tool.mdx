@@ -1,0 +1,37 @@
+---
+title: .tool()
+description: Register a validated tool in the agent's model-visible namespace.
+sidebar:
+  order: 2
+  label: .tool()
+---
+
+## Signature
+
+```ts
+builder.tool(config: ToolConfig): XsafBuilder
+```
+
+`.tool()` registers one model-visible tool. Tool names must use lowercase snake_case and must not collide with another tool, delegate, or discovered MCP tool.
+
+## Usage
+
+```ts
+builder.tool({
+  name: "lookup_order",
+  description: "Look up an order by ID",
+  input: orderInputSchema,
+  async execute(input, context) {
+    return orders.get(input.orderId);
+  },
+  timeout: 5_000,
+  retries: 1,
+  approval: "human",
+});
+```
+
+The `input` contract implements both Standard Schema V1 validation and Standard JSON Schema V1 publication. XSAF validates input before approval or execution.
+
+Executable tools require an explicit [`.sandbox()`](/xsaf/sandbox). Set `approval: "human"` for sensitive operations and register the policy with [`.approve()`](/xsaf/approve).
+
+Tool execution, retries, cancellation, timeouts, approval, sandboxing, and events all pass through one centralized pipeline. See [Tools & Security](/recipes/tools) for schema examples and the complete security model.

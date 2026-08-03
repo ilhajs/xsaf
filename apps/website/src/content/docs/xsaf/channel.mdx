@@ -1,0 +1,43 @@
+---
+title: .channel()
+description: Attach an inbound and outbound messaging channel to an agent.
+sidebar:
+  order: 3
+  label: .channel()
+---
+
+## Signature
+
+```ts
+builder.channel(driver: XsafChannelDriver): XsafBuilder
+```
+
+A channel receives messages from an external surface and sends agent results back to it.
+
+## Usage
+
+```ts
+builder.channel({
+  name: "support_chat",
+  listen(context) {
+    subscribe((message) =>
+      context.dispatch({
+        sessionId: message.threadId,
+        text: message.body,
+      }),
+    );
+  },
+  async send(target, payload) {
+    await publish(target, payload);
+  },
+  async close() {
+    await unsubscribe();
+  },
+});
+```
+
+Channel names must be unique. Channels start in registration order and close in reverse order. Startup performs cleanup if a later channel fails.
+
+Bundled adapters are available from `@xsaf/agent/channel/http` and `@xsaf/agent/channel/mock`. The HTTP channel mounts on the shared Hono app; the mock channel is deterministic and offline.
+
+See [Sessions & Memory](/recipes/sessions-memory) for session serialization and [Testing](/recipes/testing) for the mock channel.

@@ -1,0 +1,32 @@
+---
+title: .approve()
+description: Register the privileged policy handler for approval-gated tools.
+sidebar:
+  order: 11
+  label: .approve()
+---
+
+## Signature
+
+```ts
+builder.approve(handler: HumanApprovalHandler): XsafBuilder
+```
+
+## Usage
+
+```ts
+builder.approve(async (input, { tool, sessionId }) => {
+  if (tool === "delete_account") {
+    return confirmDeletion(sessionId, input);
+  }
+  return true;
+});
+```
+
+## Execution order
+
+The approval handler runs after schema validation and before sandbox execution. It is privileged: unlike public event handlers, it may inspect validated tool arguments.
+
+Return `true` to allow execution and `false` to deny it. Approval-gated tools fail closed when no handler is registered. Untrusted MCP tools require approval by default.
+
+Register only one approval handler. See [Tools & Security](/recipes/tools) for denial errors, argument secrecy, and approval ordering.

@@ -1,0 +1,33 @@
+---
+title: .on()
+description: Subscribe to typed agent lifecycle and execution events.
+sidebar:
+  order: 10
+  label: .on()
+---
+
+## Signature
+
+```ts
+builder.on(type: EventType, handler: EventHandler): XsafBuilder
+```
+
+## Usage
+
+```ts
+builder
+  .on("tool.called", (event) => {
+    console.log(event.sessionId, event.tool);
+  })
+  .on("tool.failed", (event) => {
+    reportError(event.error);
+  });
+```
+
+Handlers can be registered before or after the builder is sealed. `.on()` returns the builder, so subscriptions can stay in the configuration chain.
+
+## Privacy boundary
+
+Public telemetry intentionally excludes validated tool arguments and tool results. Use [`.approve()`](/xsaf/approve) for privileged argument inspection, and publish tool results explicitly only when your application permits it.
+
+Available events cover lifecycle, model calls, tools, delegates, schedules, heartbeats, and errors. See [Types and events](/reference#events) for the complete event union.

@@ -1,0 +1,32 @@
+---
+title: .stop()
+description: Close the agent and every initialized resource safely.
+sidebar:
+  order: 18
+  label: .stop()
+---
+
+## Signature
+
+```ts
+builder.stop(): Promise<void>
+agent.stop(): Promise<void>
+```
+
+## Usage
+
+```ts
+await builder.start();
+
+try {
+  await builder.invoke("Do the work");
+} finally {
+  await builder.stop();
+}
+```
+
+`.stop()` is asynchronous and idempotent. Concurrent calls coalesce, and shutdown waits for an in-progress startup operation.
+
+Resources close sequentially in reverse declaration order. XSAF attempts every close callback even when one fails. Multiple shutdown failures are returned together as an `AggregateError`.
+
+Channels, memory, delegates, MCP drivers, scheduler resources, and serving drivers participate in the same lifecycle. Register process signal handlers in the host application when it owns a long-running listener.

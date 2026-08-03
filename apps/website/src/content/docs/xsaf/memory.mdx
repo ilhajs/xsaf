@@ -1,0 +1,38 @@
+---
+title: .memory()
+description: Replace the session-history storage driver.
+sidebar:
+  order: 6
+  label: .memory()
+---
+
+## Signature
+
+```ts
+builder.memory(driver: XsafMemoryDriver): XsafBuilder
+```
+
+The memory driver stores ordered model messages by session ID.
+
+## Usage
+
+```ts
+builder.memory({
+  async get(sessionId) {
+    return database.readMessages(sessionId);
+  },
+  async append(sessionId, message) {
+    await database.appendMessage(sessionId, message);
+  },
+  async clear(sessionId) {
+    await database.deleteMessages(sessionId);
+  },
+  async close() {
+    await database.close();
+  },
+});
+```
+
+Register at most one memory driver. Without `.memory()`, XSAF uses its built-in in-memory implementation. Memory resources are closed during agent shutdown.
+
+Requests sharing a session ID execute serially; different sessions can run concurrently. See [Sessions & Memory](/recipes/sessions-memory) for ordering, streaming persistence, and HTTP session IDs.

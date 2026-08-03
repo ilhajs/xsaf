@@ -1,0 +1,34 @@
+---
+title: .serve()
+description: Mount the agent's MCP server on its fetch-native Hono application.
+sidebar:
+  order: 8
+  label: .serve()
+---
+
+## Signature
+
+```ts
+builder.serve(config: ServeConfig): XsafBuilder
+```
+
+`.serve()` configures MCP serving without opening a socket.
+
+## Usage
+
+```ts
+builder.serve({
+  transport: "http",
+  path: "/mcp",
+  name: "support_agent",
+  version: "0.1.0",
+});
+```
+
+Only the `http` transport is supported. The path defaults to `/mcp`; the name defaults to the configured agent name and then `xsaf`; the version defaults to XSAF's package version.
+
+## Fetch-native hosting
+
+The builder always owns a Hono app with `GET /health` and `POST /invoke`. Pass `builder.fetch` to srvx, a Node adapter, Workers, or another compatible fetch-native host. XSAF mounts routes but does not own the listener.
+
+Call `.serve()` at most once. An optional `driver` can replace the built-in MCP mounting implementation. See [MCP](/xsaf/mcp) for protocol and security details.

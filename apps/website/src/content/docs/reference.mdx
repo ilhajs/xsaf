@@ -1,77 +1,13 @@
 ---
-title: API reference
-description: Published imports, public methods, structural contracts, and events in XSAF 0.1.0-alpha.0.
+title: API Reference
+description: Structural driver contracts, runtime results, configuration types, and events in XSAF.
 sidebar:
-  order: 9
+  order: 5
 ---
 
-XSAF is ESM-only. Import core runtime symbols and contracts from `@xsaf/agent`; use published subpaths for bundled adapters.
+Import these contracts from `@xsaf/agent`. They are structural: custom drivers implement the interfaces directly without extending an XSAF base class.
 
-## Published imports
-
-| Import                      | Main exports                                                                                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@xsaf/agent`               | `xsaf`, `XsafBuilder`, `XsafAgent`, `HonoBackbone`, `XsaiModelAdapter`, memory and scheduler implementations, `parseCron`, public contracts, tool errors |
-| `@xsaf/agent/channel/http`  | default `http`, `HttpChannel`                                                                                                                            |
-| `@xsaf/agent/channel/mock`  | default `mock`, `MockChannel`                                                                                                                            |
-| `@xsaf/agent/model/mock`    | default `mockModel`, `MockModelAdapter`                                                                                                                  |
-| `@xsaf/agent/mcp`           | default `mcp`                                                                                                                                            |
-| `@xsaf/agent/sandbox/local` | default `local`                                                                                                                                          |
-| `@xsaf/agent/sandbox/host`  | default `host`, `HostSandbox`                                                                                                                            |
-
-Source-internal imports such as `@xsaf/agent/core/agent` and `@xsaf/agent/memory/in-memory` are not public exports.
-
-## Builder API
-
-```ts
-xsaf.agent(config): XsafBuilder
-
-builder
-  .sandbox(driver)
-  .tool(config)
-  .delegate(agent, options?)
-  .mcp(driver)
-  .memory(driver)
-  .channel(driver)
-  .serve(config)
-  .schedule(config)
-  .on(type, handler)
-  .approve(handler)
-```
-
-Terminal and runtime methods:
-
-```ts
-builder.name: string | undefined
-builder.description: string | undefined
-builder.asAgent(name?, description?): XsafAgent
-builder.start(): Promise<XsafAgent>
-builder.stop(): Promise<void>
-builder.invoke(prompt, sessionId?): Promise<InvokeResult>
-builder.run(prompt, sessionId?): Promise<InvokeResult>
-builder.ask(prompt, schema, sessionId?): Promise<Output>
-builder.fetch(request): Promise<Response>
-builder.app
-builder.channels
-```
-
-Runtime use through `builder` requires successful startup. `.asAgent()` returns a sealed agent for reuse and delegation, using the configured name and description unless compatibility override arguments are supplied.
-
-## Agent API
-
-```ts
-agent.start(): Promise<XsafAgent>
-agent.stop(): Promise<void>
-agent.invoke(prompt, sessionId?): Promise<InvokeResult>
-agent.ask(prompt, schema, sessionId?): Promise<Output>
-agent.prompt(name, args?): Promise<string>
-agent.fetch(request): Promise<Response>
-agent.app
-agent.channels
-agent.started
-```
-
-Prefer obtaining an agent from `.start()` or `.asAgent()` over constructing `XsafAgent` or `HonoBackbone` directly.
+For the fluent builder surface, start with the [`xsaf` API reference](/xsaf).
 
 ## Configuration
 
@@ -155,7 +91,7 @@ interface ToolConfig<Schema extends XsafToolSchema> {
 }
 ```
 
-See [Tools](/tools#tool-schemas) for the dual-schema requirement.
+See [Tools](/recipes/tools#tool-schemas) for the dual-schema requirement.
 
 ### Memory
 
@@ -276,9 +212,9 @@ A schedule emits `heartbeat.fired` before running. Success emits `heartbeat.comp
 
 ## See also
 
-- [Builder and lifecycle](/components)
-- [Tools & Security](/tools)
-- [MCP](/mcp)
-- [Delegation](/delegation)
-- [Scheduling](/scheduling)
+- [Builder and lifecycle](/xsaf)
+- [Tools & Security](/recipes/tools)
+- [MCP](/xsaf/mcp)
+- [Delegation](/xsaf/delegate)
+- [Scheduling](/xsaf/schedule)
 - [Roadmap](/roadmap)

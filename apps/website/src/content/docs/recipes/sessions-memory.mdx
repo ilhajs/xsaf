@@ -2,7 +2,7 @@
 title: Sessions & Memory
 description: Understand session isolation, streaming completion, memory persistence, channels, and the fetch-native runtime.
 sidebar:
-  order: 3
+  order: 2
 ---
 
 Every `XsafAgent` owns a Hono application. XSAF mounts routes and exposes a web-standard fetch handler, but it never opens a network listener.
@@ -79,7 +79,7 @@ Content-Type: application/json
 
 String and object results return JSON. Streaming results return Server-Sent Events with one `data` event per chunk. A missing session ID is generated with `crypto.randomUUID()`.
 
-The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `@xsaf/agent/channel/mock` for deterministic in-process tests; see [Testing](/testing).
+The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `@xsaf/agent/channel/mock` for deterministic in-process tests; see [Testing](/recipes/testing).
 
 ## Sessions and streaming
 
@@ -181,8 +181,8 @@ The package does not include SQLite or another durable memory adapter in alpha. 
 
 ## See also
 
-- [Builder and lifecycle](/components)
-- [Testing](/testing)
-- [MCP](/mcp)
+- [Builder and lifecycle](/xsaf)
+- [Testing](/recipes/testing)
+- [MCP](/xsaf/mcp)
 - [Public driver contracts](/reference#public-contracts)
 - [Roadmap](/roadmap)
