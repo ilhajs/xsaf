@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nitro dev",
     "build": "nitro build",
-    "start": "nitro preview"
+    "start": "node --env-file .env .output/server/index.mjs"
   },
   "dependencies": {
     "@xsaf/agent": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/agent@main",
