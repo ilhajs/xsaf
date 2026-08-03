@@ -1,9 +1,9 @@
 import {
+  type Component,
   Container,
   Editor,
   type EditorTheme,
   Key,
-  Loader,
   Markdown,
   type MarkdownTheme,
   matchesKey,
@@ -95,6 +95,7 @@ export class XsafTui {
   readonly #theme: XsafTuiTheme;
   readonly #messages = new Container();
   readonly #activity = new Map<string, Text>();
+  readonly #maxHistoryItems = 200;
   #busy = false;
   #started = false;
   #stopping?: Promise<void>;
@@ -157,22 +158,19 @@ export class XsafTui {
     this.editor.setText("");
     this.addMessage("You", prompt);
 
-    const loader = new Loader(this.tui, this.#theme.accent, this.#theme.dim, "Thinking…");
-    this.#messages.addChild(loader);
-    loader.start();
+    const thinking = new Text(this.#theme.dim("◇ Thinking…"), 1, 0);
+    this.#append(thinking);
     this.tui.requestRender();
 
     try {
       const result = await this.#options.agent.invoke(prompt, this.#options.sessionId);
-      loader.stop();
-      this.#messages.removeChild(loader);
+      this.#messages.removeChild(thinking);
       await this.#addAssistantResult(result);
-      this.#messages.addChild(new Spacer(1));
+      this.#append(new Spacer(1));
     } catch (error) {
-      loader.stop();
-      this.#messages.removeChild(loader);
+      this.#messages.removeChild(thinking);
       this.addMessage("Error", error instanceof Error ? error.message : String(error));
-      this.#messages.addChild(new Spacer(1));
+      this.#append(new Spacer(1));
     } finally {
       this.#busy = false;
       this.editor.disableSubmit = false;
@@ -183,7 +181,7 @@ export class XsafTui {
 
   addMessage(author: string, markdown: string): Markdown {
     const message = new Markdown(`**${author}**\n\n${markdown}`, 1, 1, this.#theme.markdown);
-    this.#messages.addChild(message);
+    this.#append(message);
     this.tui.requestRender();
     return message;
   }
@@ -210,25 +208,44 @@ export class XsafTui {
     else {
       const status = new Text(color(text), 1, 0);
       this.#activity.set(key, status);
-      this.#messages.addChild(status);
+      this.#append(status);
     }
     this.tui.requestRender();
   }
 
   async #addAssistantResult(result: InvokeResult): Promise<void> {
-    const message = this.addMessage(this.#agentName, "");
     if ("text" in result) {
-      message.setText(`**${this.#agentName}**\n\n${result.text}`);
+      this.addMessage(this.#agentName, result.text);
       return;
     }
 
+    const streaming = new Text("", 1, 1);
+    this.#append(streaming);
     let text = "";
+    let lastRender = 0;
     for await (const chunk of result.textStream) {
       text += chunk;
-      message.setText(`**${this.#agentName}**\n\n${text}`);
+      const now = Date.now();
+      if (now - lastRender < 50) continue;
+      lastRender = now;
+      streaming.setText(`${this.#agentName}\n\n${text}`);
       this.tui.requestRender();
     }
     await result.completed;
+    this.#messages.removeChild(streaming);
+    this.addMessage(this.#agentName, text);
+  }
+
+  #append(component: Component): void {
+    this.#messages.addChild(component);
+    while (this.#messages.children.length > this.#maxHistoryItems) {
+      const oldest = this.#messages.children[0];
+      if (!oldest) break;
+      this.#messages.removeChild(oldest);
+      for (const [key, activity] of this.#activity) {
+        if (activity === oldest) this.#activity.delete(key);
+      }
+    }
   }
 
   #observeAgent(): void {

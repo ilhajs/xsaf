@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsdown --watch agent.ts --on-success \"node dist/agent.mjs\"",
+    "dev": "node --watch agent.ts",
     "build": "tsdown",
     "start": "node dist/agent.mjs"
   },
@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "tsdown": "^0.22.14"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

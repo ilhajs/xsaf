@@ -8,6 +8,14 @@ From `templates/tui`:
 
 ```sh
 npm install
+npm run dev
+```
+
+Development runs `agent.ts` directly with Node's watch mode, avoiding a full bundle and process-tree restart after every edit.
+
+For a production-style build:
+
+```sh
 npm run build
 npm start
 ```
