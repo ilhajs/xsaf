@@ -3,22 +3,22 @@ import http from "@xsaf/agent/channel/http";
 import xsai from "@xsaf/agent/model/xsai";
 import local from "@xsaf/agent/sandbox/local";
 import { defineHandler } from "nitro";
+import { useRuntimeConfig } from "nitro/runtime-config";
 import { z } from "zod";
 
-// TODO: Fill .env
 const env = z
   .object({
-    XSAF_AI_MODEL: z.string(),
-    XSAF_AI_API_KEY: z.string(),
-    XSAF_AI_BASE_URL: z.string(),
-    XSAF_CHAT_KEY: z.string().min(1),
+    xsafAiModel: z.string(),
+    xsafAiApiKey: z.string(),
+    xsafAiBaseUrl: z.string(),
+    xsafChatKey: z.string().min(1),
   })
-  .parse(process.env);
+  .parse(useRuntimeConfig());
 
 const model = xsai({
-  model: env.XSAF_AI_MODEL,
-  apiKey: env.XSAF_AI_API_KEY,
-  baseURL: env.XSAF_AI_BASE_URL,
+  model: env.xsafAiModel,
+  apiKey: env.xsafAiApiKey,
+  baseURL: env.xsafAiBaseUrl,
 });
 
 const weatherAdvisor = xsaf
@@ -50,7 +50,7 @@ export const agent = xsaf
   })
   .sandbox(local())
   .delegate(weatherAdvisor)
-  .channel(http({ path: "/chat", ...{ apiKey: env.XSAF_CHAT_KEY } }))
+  .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
   .serve({ path: "/mcp" });
 
 await agent.start();
