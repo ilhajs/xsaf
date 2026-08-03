@@ -7,8 +7,8 @@
     "start": "bun agent.ts"
   },
   "dependencies": {
-    "@xsaf/tui": "0.1.0-alpha.0",
+    "@xsaf/tui": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/tui@main",
     "srvx": "^0.12.5",
-    "xsaf": "0.1.0-alpha.0"
+    "xsaf": "https://pkg.pr.new/ilhajs/xsaf@main"
   }
 }
