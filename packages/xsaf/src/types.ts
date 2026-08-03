@@ -196,6 +196,10 @@ export interface ServeConfig {
   readonly path?: string;
   readonly name?: string;
   readonly version?: string;
+  /** Host for DNS rebinding protection (default: '127.0.0.1'). Use '0.0.0.0' to disable. */
+  readonly host?: string;
+  readonly allowedHosts?: readonly string[];
+  readonly allowedOrigins?: readonly string[];
   /** Overrides the built-in Hono + MCP HTTP backbone. Required for stdio. */
   readonly driver?: XsafServeDriver;
 }

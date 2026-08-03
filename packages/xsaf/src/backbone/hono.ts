@@ -12,6 +12,9 @@ export interface HonoBackboneOptions {
   readonly version?: string;
   readonly mcpPath?: string;
   readonly invokePath?: string;
+  readonly host?: string;
+  readonly allowedHosts?: readonly string[];
+  readonly allowedOrigins?: readonly string[];
   readonly invoke: (prompt: string, sessionId: string) => Promise<AgentResult>;
 }
 
@@ -47,7 +50,11 @@ export class HonoBackbone {
       mcpPath: options.mcpPath ?? "/mcp",
       invokePath: options.invokePath ?? "/invoke",
     };
-    const app = createMcpHonoApp();
+    const app = createMcpHonoApp({
+      ...(options.host ? { host: options.host } : {}),
+      ...(options.allowedHosts ? { allowedHosts: options.allowedHosts as string[] } : {}),
+      ...(options.allowedOrigins ? { allowedOrigins: options.allowedOrigins as string[] } : {}),
+    });
     app.get("/health", (context) => context.json({ ok: true }));
     app.post(this.#defaults.invokePath, async (context) => {
       const body = await context.req.json<{

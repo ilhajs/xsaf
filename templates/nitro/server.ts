@@ -12,6 +12,7 @@ const env = z
     xsafAiApiKey: z.string(),
     xsafAiBaseUrl: z.string(),
     xsafChatKey: z.string().min(1),
+    xsafMcpHost: z.string().default("0.0.0.0"),
   })
   .parse(useRuntimeConfig());
 
@@ -51,7 +52,7 @@ export const agent = xsaf
   .sandbox(local())
   .delegate(weatherAdvisor)
   .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
-  .serve({ path: "/mcp" });
+  .serve({ path: "/mcp", host: env.xsafMcpHost });
 
 await agent.start();
 

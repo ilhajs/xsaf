@@ -116,8 +116,23 @@ export class AgentRuntime {
     this.name = definition.name;
     this.description = definition.description;
     this.channels = this.#channelMap;
+
+    let host: string | undefined;
+    let allowedHosts: readonly string[] | undefined;
+    let allowedOrigins: readonly string[] | undefined;
+    for (const resource of definition.resources) {
+      if (resource.type === "serve") {
+        host = resource.value.host;
+        allowedHosts = resource.value.allowedHosts;
+        allowedOrigins = resource.value.allowedOrigins;
+      }
+    }
+
     this.backbone = new HonoBackbone({
       name: definition.name ?? "xsaf",
+      ...(host ? { host } : {}),
+      ...(allowedHosts ? { allowedHosts } : {}),
+      ...(allowedOrigins ? { allowedOrigins } : {}),
       invoke: async (prompt, sessionId) => collect(await this.invoke(prompt, sessionId)),
     });
     for (const tool of definition.tools) this.#modelToolNames.add(tool.name);

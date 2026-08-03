@@ -6,5 +6,6 @@ export default defineConfig({
     xsafAiApiKey: "",
     xsafAiBaseUrl: "",
     xsafChatKey: "",
+    xsafMcpHost: "",
   },
 });
