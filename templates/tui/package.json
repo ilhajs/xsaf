@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsdown --watch agent.ts --on-success \"node dist/agent.mjs\"",
     "build": "tsdown",
     "start": "node dist/agent.mjs"
   },
