@@ -29,7 +29,7 @@
     "@earendil-works/pi-tui": "^0.83.0"
   },
   "peerDependencies": {
-    "xsaf": "^0.1.0-alpha.0"
+    "@xsaf/agent": "^0.1.0-alpha.0"
   },
   "engines": {
     "node": ">=22.19.0"

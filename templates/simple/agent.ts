@@ -1,6 +1,6 @@
-import { xsaf } from "xsaf";
-import mockChannel from "xsaf/channel/mock";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockChannel from "@xsaf/agent/channel/mock";
+import mockModel from "@xsaf/agent/model/mock";
 import { serve } from "srvx";
 
 const model = mockModel({

@@ -1,7 +1,7 @@
 import tui from "@xsaf/tui";
 import { serve } from "srvx";
-import { xsaf } from "xsaf";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockModel from "@xsaf/agent/model/mock";
 
 const model = mockModel({
   response(request) {

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "xsaf",
+      "name": "xsaf-monorepo",
       "devDependencies": {
         "@tsconfig/strictest": "^2.0.8",
         "@types/bun": "latest",
@@ -45,11 +45,11 @@
         "@earendil-works/pi-tui": "^0.83.0",
       },
       "peerDependencies": {
-        "xsaf": "^0.1.0-alpha.0",
+        "@xsaf/agent": "^0.1.0-alpha.0",
       },
     },
     "packages/xsaf": {
-      "name": "xsaf",
+      "name": "@xsaf/agent",
       "version": "0.1.0-alpha.0",
       "dependencies": {
         "@modelcontextprotocol/hono": "^2.0.0",
@@ -577,6 +577,8 @@
     "@vscode/l10n": ["@vscode/l10n@0.0.18", "", {}, "sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ=="],
 
     "@webgpu/types": ["@webgpu/types@0.1.21", "", {}, "sha512-pUrWq3V5PiSGFLeLxoGqReTZmiiXwY3jRkIG5sLLKjyqNxrwm/04b4nw7LSmGWJcKk59XOM/YRTUwOzo4MMlow=="],
+
+    "@xsaf/agent": ["@xsaf/agent@workspace:packages/xsaf"],
 
     "@xsaf/tui": ["@xsaf/tui@workspace:packages/tui"],
 
@@ -1435,8 +1437,6 @@
     "wrap-ansi": ["wrap-ansi@9.0.2", "", { "dependencies": { "ansi-styles": "^6.2.1", "string-width": "^7.0.0", "strip-ansi": "^7.1.0" } }, "sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww=="],
 
     "wrappy": ["wrappy@1.0.2", "", {}, "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="],
-
-    "xsaf": ["xsaf@workspace:packages/xsaf"],
 
     "xsai": ["xsai@0.5.0-beta.7", "", { "dependencies": { "@xsai/embed": "0.5.0-beta.7", "@xsai/generate-image": "0.5.0-beta.7", "@xsai/generate-object": "0.5.0-beta.7", "@xsai/generate-speech": "0.5.0-beta.7", "@xsai/generate-text": "0.5.0-beta.7", "@xsai/generate-transcription": "0.5.0-beta.7", "@xsai/model": "0.5.0-beta.7", "@xsai/shared": "0.5.0-beta.7", "@xsai/shared-chat": "0.5.0-beta.7", "@xsai/shared-stream": "0.5.0-beta.7", "@xsai/stream-object": "0.5.0-beta.7", "@xsai/stream-speech": "0.5.0-beta.7", "@xsai/stream-text": "0.5.0-beta.7", "@xsai/stream-transcription": "0.5.0-beta.7", "@xsai/tool": "0.5.0-beta.7", "@xsai/utils-chat": "0.5.0-beta.7", "@xsai/utils-reasoning": "0.5.0-beta.7", "@xsai/utils-stream": "0.5.0-beta.7" } }, "sha512-iOBwY2M4gr5ZckEd00IH7JzXxjVMGz20DRvQNTCxH2TY4opRg3gPJ7hlfVNLootZkC/soC7W9q4CO+m4W6g7Kw=="],
 

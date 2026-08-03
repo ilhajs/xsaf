@@ -11,12 +11,12 @@ Every `XsafAgent` owns a Hono application. XSAF mounts routes and exposes a web-
 
 ### Built-in routes
 
-| Route          | Behavior                                                               |
-| -------------- | ---------------------------------------------------------------------- |
-| `GET /health`  | Returns `{ "ok": true }`; it is not a dependency health check.         |
-| `POST /invoke` | Accepts `{ prompt, sessionId? }` and returns a collected model result. |
-| `/mcp`         | Mounted only after `.serve({ transport: "http" })`.                    |
-| `/chat`        | Default route of `xsaf/channel/http` when that channel is registered.  |
+| Route          | Behavior                                                                     |
+| -------------- | ---------------------------------------------------------------------------- |
+| `GET /health`  | Returns `{ "ok": true }`; it is not a dependency health check.               |
+| `POST /invoke` | Accepts `{ prompt, sessionId? }` and returns a collected model result.       |
+| `/mcp`         | Mounted only after `.serve({ transport: "http" })`.                          |
+| `/chat`        | Default route of `@xsaf/agent/channel/http` when that channel is registered. |
 
 Blank prompts and malformed JSON sent to `/invoke` return `400`. The default HTTP session ID is `"http"`.
 
@@ -64,7 +64,7 @@ Inbound channel messages dispatch through the normal request path. The result is
 ### HTTP channel
 
 ```ts
-import http from "xsaf/channel/http";
+import http from "@xsaf/agent/channel/http";
 
 const channel = http({ name: "web", path: "/chat" });
 const builder = xsaf.agent(config).channel(channel);
@@ -79,7 +79,7 @@ Content-Type: application/json
 
 String and object results return JSON. Streaming results return Server-Sent Events with one `data` event per chunk. A missing session ID is generated with `crypto.randomUUID()`.
 
-The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `xsaf/channel/mock` for deterministic in-process tests; see [Testing](/testing).
+The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `@xsaf/agent/channel/mock` for deterministic in-process tests; see [Testing](/testing).
 
 ## Sessions and streaming
 
@@ -138,7 +138,7 @@ XSAF stores inbound user messages and completed assistant responses through one 
 No configuration is required. For an explicit instance:
 
 ```ts
-import { InMemoryMemory, inMemory } from "xsaf";
+import { InMemoryMemory, inMemory } from "@xsaf/agent";
 
 const memory = inMemory();
 const another = new InMemoryMemory();

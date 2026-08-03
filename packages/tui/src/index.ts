@@ -15,7 +15,7 @@ import {
   // pi-lens-ignore: ts:2307
 } from "@earendil-works/pi-tui";
 // pi-lens-ignore: ts:2307
-import type { InvokeResult, XsafBuilder, XsafEvent } from "xsaf";
+import type { InvokeResult, XsafBuilder, XsafEvent } from "@xsaf/agent";
 
 export interface XsafTuiTheme {
   readonly accent: (text: string) => string;

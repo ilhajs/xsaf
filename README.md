@@ -30,11 +30,11 @@ XSAF coordinates models, tools, memory, channels, delegated agents, schedules, a
 ## Install
 
 ```sh
-bun add xsaf
+bun add @xsaf/agent
 ```
 
 ```sh
-npm install xsaf
+npm install @xsaf/agent
 ```
 
 XSAF is ESM-only and declares Node.js 20 or newer. Its core HTTP surface uses web-standard `Request`, `Response`, and `fetch` APIs.
@@ -44,9 +44,9 @@ XSAF is ESM-only and declares Node.js 20 or newer. Its core HTTP surface uses we
 This complete example is deterministic and makes no network requests:
 
 ```ts
-import { xsaf } from "xsaf";
-import mockChannel from "xsaf/channel/mock";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockChannel from "@xsaf/agent/channel/mock";
+import mockModel from "@xsaf/agent/model/mock";
 
 const model = mockModel({
   response(request) {
@@ -85,7 +85,7 @@ Move from the mock adapter to xsAI-backed models without changing the surroundin
 Install `@xsaf/tui` for a polished Pi-powered terminal experience with a multiline prompt, Markdown history, streaming responses, tool and delegate statuses, and customizable themes:
 
 ```sh
-bun add xsaf @xsaf/tui
+bun add @xsaf/agent @xsaf/tui
 ```
 
 ```ts
@@ -129,7 +129,7 @@ Use the same handler with a compatible Node adapter, Bun, Deno, Workers, or anot
 XSAF does not silently execute model-selected tools on the host. Executable local tools, delegates, and MCP tools require an explicit sandbox driver.
 
 ```ts
-import local from "xsaf/sandbox/local";
+import local from "@xsaf/agent/sandbox/local";
 
 builder.sandbox(local()); // Explicit opt-in: no isolation.
 ```

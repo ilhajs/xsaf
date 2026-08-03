@@ -8,8 +8,8 @@
     "start": "node dist/agent.mjs"
   },
   "dependencies": {
-    "srvx": "^0.12.5",
-    "xsaf": "https://pkg.pr.new/ilhajs/xsaf@main"
+    "@xsaf/agent": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/agent@main",
+    "srvx": "^0.12.5"
   },
   "devDependencies": {
     "@types/node": "^24",

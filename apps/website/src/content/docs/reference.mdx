@@ -5,21 +5,21 @@ sidebar:
   order: 9
 ---
 
-XSAF is ESM-only. Import core runtime symbols and contracts from `xsaf`; use published subpaths for bundled adapters.
+XSAF is ESM-only. Import core runtime symbols and contracts from `@xsaf/agent`; use published subpaths for bundled adapters.
 
 ## Published imports
 
-| Import               | Main exports                                                                                                                                             |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `xsaf`               | `xsaf`, `XsafBuilder`, `XsafAgent`, `HonoBackbone`, `XsaiModelAdapter`, memory and scheduler implementations, `parseCron`, public contracts, tool errors |
-| `xsaf/channel/http`  | default `http`, `HttpChannel`                                                                                                                            |
-| `xsaf/channel/mock`  | default `mock`, `MockChannel`                                                                                                                            |
-| `xsaf/model/mock`    | default `mockModel`, `MockModelAdapter`                                                                                                                  |
-| `xsaf/mcp`           | default `mcp`                                                                                                                                            |
-| `xsaf/sandbox/local` | default `local`                                                                                                                                          |
-| `xsaf/sandbox/host`  | default `host`, `HostSandbox`                                                                                                                            |
+| Import                      | Main exports                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@xsaf/agent`               | `xsaf`, `XsafBuilder`, `XsafAgent`, `HonoBackbone`, `XsaiModelAdapter`, memory and scheduler implementations, `parseCron`, public contracts, tool errors |
+| `@xsaf/agent/channel/http`  | default `http`, `HttpChannel`                                                                                                                            |
+| `@xsaf/agent/channel/mock`  | default `mock`, `MockChannel`                                                                                                                            |
+| `@xsaf/agent/model/mock`    | default `mockModel`, `MockModelAdapter`                                                                                                                  |
+| `@xsaf/agent/mcp`           | default `mcp`                                                                                                                                            |
+| `@xsaf/agent/sandbox/local` | default `local`                                                                                                                                          |
+| `@xsaf/agent/sandbox/host`  | default `host`, `HostSandbox`                                                                                                                            |
 
-Source-internal imports such as `xsaf/core/agent` and `xsaf/memory/in-memory` are not public exports.
+Source-internal imports such as `@xsaf/agent/core/agent` and `@xsaf/agent/memory/in-memory` are not public exports.
 
 ## Builder API
 

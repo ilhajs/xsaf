@@ -7,7 +7,7 @@ It provides a bordered multiline prompt, Markdown conversation history, streamin
 ## Install
 
 ```sh
-bun add xsaf @xsaf/tui
+bun add @xsaf/agent @xsaf/tui
 ```
 
 `@xsaf/tui` uses `@earendil-works/pi-tui` and requires Node.js 22.19 or newer. Bun is supported.

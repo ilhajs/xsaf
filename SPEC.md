@@ -55,8 +55,8 @@ JSON Schema is advertised to xsAI and MCP clients. Runtime arguments are validat
 Executable local, delegated, and MCP tools require an explicit sandbox. XSAF has no implicit host-execution fallback.
 
 - Production users should register an AgentOS-compatible `XsafSandboxDriver`.
-- `xsaf/sandbox/local` is an explicit no-isolation opt-in.
-- `xsaf/sandbox/host` remains a compatibility alias requiring an unsafe acknowledgement.
+- `@xsaf/agent/sandbox/local` is an explicit no-isolation opt-in.
+- `@xsaf/agent/sandbox/host` remains a compatibility alias requiring an unsafe acknowledgement.
 
 ## Approvals
 
@@ -66,7 +66,7 @@ MCP servers default to `untrusted`; their tools require approval unless `trust: 
 
 ## MCP
 
-`xsaf/mcp` provides a built-in HTTP client for MCP v2. It discovers tools, resources, and prompts over the `2026-07-28` per-request protocol. No client adapter is required. MCP tools merge into the same execution loop as local tools and delegates.
+`@xsaf/agent/mcp` provides a built-in HTTP client for MCP v2. It discovers tools, resources, and prompts over the `2026-07-28` per-request protocol. No client adapter is required. MCP tools merge into the same execution loop as local tools and delegates.
 
 `.serve()` uses the official MCP server and Hono packages. Local tools are exposed through `tools/list` and `tools/call` with their real JSON Schema.
 
@@ -74,8 +74,8 @@ MCP servers default to `untrusted`; their tools require approval unless `trust: 
 
 Alpha bundles:
 
-- `xsaf/channel/mock` for deterministic tests.
-- `xsaf/channel/http` mounted on the shared Hono app, with JSON responses and SSE for streamed responses.
+- `@xsaf/agent/channel/mock` for deterministic tests.
+- `@xsaf/agent/channel/http` mounted on the shared Hono app, with JSON responses and SSE for streamed responses.
 
 Other chat-platform channels are post-alpha adapters.
 

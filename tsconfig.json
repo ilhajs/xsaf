@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "paths": {
       "@xsaf/tui": ["./packages/tui/src/index.ts"],
-      "xsaf": ["./packages/xsaf/src/index.ts"]
+      "@xsaf/agent": ["./packages/xsaf/src/index.ts"]
     }
   }
 }

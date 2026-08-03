@@ -1,5 +1,5 @@
 {
-  "name": "xsaf",
+  "name": "@xsaf/agent",
   "version": "0.1.0-alpha.0",
   "description": "Extra Small Agent Framework built on xsAI, Hono, and MCP v2",
   "keywords": [

@@ -31,7 +31,7 @@ Tool names must match `^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$`. Description cannot be b
 Tool input must implement two vendor-neutral contracts from standardschema.dev:
 
 ```ts
-import type { StandardJSONSchemaV1, StandardSchemaV1, XsafToolSchema } from "xsaf";
+import type { StandardJSONSchemaV1, StandardSchemaV1, XsafToolSchema } from "@xsaf/agent";
 
 type XsafToolSchema<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output> &
   StandardJSONSchemaV1<Input, Output>;
@@ -218,7 +218,7 @@ Production isolation is supplied by an external AgentOS-compatible structural dr
 For tests and code you fully trust, opt out of isolation deliberately:
 
 ```ts
-import local from "xsaf/sandbox/local";
+import local from "@xsaf/agent/sandbox/local";
 
 const builder = xsaf.agent(config).sandbox(local());
 ```
@@ -227,14 +227,14 @@ const builder = xsaf.agent(config).sandbox(local());
 
 <Aside type="danger" title="Do not mistake local execution for a sandbox">
 
-Use `xsaf/sandbox/local` only when host-process execution is acceptable. Register an isolation driver for untrusted code or privileged operations.
+Use `@xsaf/agent/sandbox/local` only when host-process execution is acceptable. Register an isolation driver for untrusted code or privileged operations.
 
 </Aside>
 
 ### Compatibility host adapter
 
 ```ts
-import host from "xsaf/sandbox/host";
+import host from "@xsaf/agent/sandbox/host";
 
 const unsafe = host({ allowUnsafeHostExecution: true });
 ```

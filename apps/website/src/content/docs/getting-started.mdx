@@ -11,7 +11,7 @@ This quickstart creates a complete agent with XSAF's public mock adapters. It pe
 <Steps>
   <Step title="Install XSAF">
 
-<PackageManagers pkg="xsaf" />
+<PackageManagers pkg="@xsaf/agent" />
 
 XSAF is ESM-only. Node.js 20 or newer is the declared Node runtime.
 
@@ -20,9 +20,9 @@ XSAF is ESM-only. Node.js 20 or newer is the declared Node runtime.
   <Step title="Create a mock agent">
 
 ```ts title="src/agent.ts"
-import { xsaf } from "xsaf";
-import mockChannel from "xsaf/channel/mock";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockChannel from "@xsaf/agent/channel/mock";
+import mockModel from "@xsaf/agent/model/mock";
 
 const model = mockModel({
   response(request) {

@@ -23,9 +23,9 @@ bun run example:mock
 ```
 
 ```ts
-import { xsaf } from "xsaf";
-import mockChannel from "xsaf/channel/mock";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockChannel from "@xsaf/agent/channel/mock";
+import mockModel from "@xsaf/agent/model/mock";
 
 const ai = mockModel({ response: "Hello from the mock model" });
 const channel = mockChannel();
@@ -66,4 +66,4 @@ bun run build
 
 XSAF vendors the type-only Standard Schema V1 and Standard JSON Schema V1 contracts from [standardschema.dev](https://standardschema.dev/). Model-visible tool schemas must implement both validation and JSON Schema conversion.
 
-Executable tools always require an explicit sandbox. Use an AgentOS-compatible driver for isolation or deliberately opt out with `xsaf/sandbox/local`.
+Executable tools always require an explicit sandbox. Use an AgentOS-compatible driver for isolation or deliberately opt out with `@xsaf/agent/sandbox/local`.

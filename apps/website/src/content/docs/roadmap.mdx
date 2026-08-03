@@ -29,7 +29,7 @@ Broader Deno and Workers support depends on the target runtime and all installed
 ## Security boundaries
 
 - No production isolation implementation is bundled.
-- `xsaf/sandbox/local` and `xsaf/sandbox/host` execute in the host process and provide no isolation.
+- `@xsaf/agent/sandbox/local` and `@xsaf/agent/sandbox/host` execute in the host process and provide no isolation.
 - Sandbox permission metadata is not enforcement by itself.
 - Tool timeouts and caller cancellation are cooperative.
 - HTTP routes do not include application authentication; compose it with Hono or deployment infrastructure.

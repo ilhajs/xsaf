@@ -21,9 +21,9 @@ XSAF's public mock adapters keep tests deterministic and ensure default test sui
 
 ```ts title="agent.test.ts"
 import { expect, test } from "bun:test";
-import { xsaf } from "xsaf";
-import mockChannel from "xsaf/channel/mock";
-import mockModel from "xsaf/model/mock";
+import { xsaf } from "@xsaf/agent";
+import mockChannel from "@xsaf/agent/channel/mock";
+import mockModel from "@xsaf/agent/model/mock";
 
 test("replies through a channel", async () => {
   const model = mockModel({ response: "mock reply" });
@@ -91,7 +91,7 @@ The explicit `host` header satisfies the Hono/MCP host protection used by the sh
 Tools still require an explicit sandbox in tests. When the function is trusted test code:
 
 ```ts
-import local from "xsaf/sandbox/local";
+import local from "@xsaf/agent/sandbox/local";
 
 const builder = xsaf.agent(config).sandbox(local()).tool(tool);
 ```
