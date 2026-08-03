@@ -330,13 +330,17 @@ export class AgentRuntime {
 
   #request(messages: readonly Message[], sessionId: string): ModelRequest {
     const tools = [
-      ...this.#definition.tools,
-      ...this.#delegateTools(sessionId, messages),
-      ...this.#mcpTools,
-    ].map((tool) =>
+      ...this.#definition.tools.map((tool) => ({ tool, emitToolEvents: true })),
+      ...this.#delegateTools(sessionId, messages).map((tool) => ({
+        tool,
+        emitToolEvents: false,
+      })),
+      ...this.#mcpTools.map((tool) => ({ tool, emitToolEvents: true })),
+    ].map(({ tool, emitToolEvents }) =>
       toModelTool(tool, {
         sessionId,
         events: this.#definition.events,
+        emitToolEvents,
         ...(this.#sandbox ? { defaultSandbox: this.#sandbox } : {}),
       }),
     );
@@ -365,6 +369,7 @@ export class AgentRuntime {
           delegate: name,
           sessionId,
         });
+        const stopForwarding = registration.agent.#definition.events.forwardTo(events);
         try {
           const result = await registration.agent.#executePrompt(
             input.prompt,
@@ -373,6 +378,7 @@ export class AgentRuntime {
           );
           return await collect(result);
         } finally {
+          stopForwarding();
           await events.emit({
             type: "delegate.completed",
             delegate: name,

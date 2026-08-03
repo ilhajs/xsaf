@@ -106,6 +106,7 @@ export function toModelTool(
     readonly sessionId: string;
     readonly events: EventBus;
     readonly defaultSandbox?: XsafSandboxDriver;
+    readonly emitToolEvents?: boolean;
   },
 ): ModelTool {
   return {
@@ -128,11 +129,12 @@ export function toModelTool(
       let lastError: unknown;
       for (let attempt = 0; attempt <= retries; attempt += 1) {
         let executionSignal: AbortSignal | undefined;
-        await context.events.emit({
-          type: "tool.called",
-          tool: config.name,
-          sessionId: context.sessionId,
-        });
+        if (context.emitToolEvents !== false)
+          await context.events.emit({
+            type: "tool.called",
+            tool: config.name,
+            sessionId: context.sessionId,
+          });
         try {
           const result = await withTimeout(
             async (timeoutSignal) => {
@@ -150,20 +152,22 @@ export function toModelTool(
             config.timeout,
             config.name,
           );
-          await context.events.emit({
-            type: "tool.completed",
-            tool: config.name,
-            sessionId: context.sessionId,
-          });
+          if (context.emitToolEvents !== false)
+            await context.events.emit({
+              type: "tool.completed",
+              tool: config.name,
+              sessionId: context.sessionId,
+            });
           return result;
         } catch (error) {
           lastError = error;
-          await context.events.emit({
-            type: "tool.failed",
-            tool: config.name,
-            sessionId: context.sessionId,
-            error: errorMessage(error),
-          });
+          if (context.emitToolEvents !== false)
+            await context.events.emit({
+              type: "tool.failed",
+              tool: config.name,
+              sessionId: context.sessionId,
+              error: errorMessage(error),
+            });
           if (isNonRetryable(error, executionSignal)) break;
         }
       }

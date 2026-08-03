@@ -7,6 +7,7 @@ A minimal interactive terminal agent built with XSAF, `@xsaf/tui`, and srvx.
 From `templates/tui`:
 
 ```sh
+cp .env.example .env
 npm install
 npm run dev
 ```

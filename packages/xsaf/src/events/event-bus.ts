@@ -11,6 +11,7 @@ type ErasedHandler = (event: XsafEvent) => MaybePromise<unknown>;
 export class EventBus {
   readonly #handlers = new Map<EventType, Set<ErasedHandler>>();
   readonly #approvers = new Set<HumanApprovalHandler>();
+  readonly #forwarders = new Map<EventBus, number>();
 
   on<Type extends EventType>(type: Type, handler: EventHandler<Type>): () => void {
     let handlers = this.#handlers.get(type);
@@ -28,6 +29,16 @@ export class EventBus {
     return () => this.#approvers.delete(handler);
   }
 
+  forwardTo(target: EventBus): () => void {
+    if (target === this) return () => undefined;
+    this.#forwarders.set(target, (this.#forwarders.get(target) ?? 0) + 1);
+    return () => {
+      const remaining = (this.#forwarders.get(target) ?? 1) - 1;
+      if (remaining === 0) this.#forwarders.delete(target);
+      else this.#forwarders.set(target, remaining);
+    };
+  }
+
   async requestApproval(
     input: unknown,
     context: { readonly tool: string; readonly sessionId: string },
@@ -40,7 +51,11 @@ export class EventBus {
 
   async emit(event: XsafEvent): Promise<unknown[]> {
     const handlers = [...(this.#handlers.get(event.type) ?? [])];
-    const settled = await Promise.allSettled(handlers.map((handler) => handler(event)));
+    const forwarders = [...this.#forwarders.keys()].map((target) => target.emit(event));
+    const settled = await Promise.allSettled([
+      ...handlers.map((handler) => handler(event)),
+      ...forwarders,
+    ]);
     return settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
   }
 }

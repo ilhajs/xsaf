@@ -507,15 +507,26 @@ describe("tool pipeline", () => {
 });
 
 describe("delegation, MCP, schedules, and structured output", () => {
-  test("delegate receives no parent history and emits events on the parent", async () => {
+  test("delegate receives no parent history and forwards its tool events", async () => {
     const delegateEvents: string[] = [];
-    const childAdapter = new MockAdapter((request) => {
+    const toolEvents: string[] = [];
+    const childAdapter = new MockAdapter(async (request) => {
       expect(request.messages.some((message) => message.content === "parent secret")).toBe(false);
-      return { text: "child-result" };
+      const tool = request.tools.find((candidate) => candidate.name === "child_lookup");
+      if (!tool) throw new Error("child_lookup tool missing");
+      return { text: String(await tool.execute({ value: 1 })) };
     });
-    const child = xsaf.agent(
-      config(childAdapter, { name: "researcher", description: "research tasks" }),
-    );
+    const child = xsaf
+      .agent(config(childAdapter, { name: "researcher", description: "research tasks" }))
+      .sandbox(local())
+      .tool({
+        name: "child_lookup",
+        description: "looks up a value",
+        input: objectSchema(),
+        async execute() {
+          return "child-result";
+        },
+      });
     const parentAdapter = new MockAdapter(async (request) => {
       const delegate = request.tools.find((tool) => tool.name === "researcher");
       if (!delegate) throw new Error("researcher tool missing");
@@ -527,10 +538,12 @@ describe("delegation, MCP, schedules, and structured output", () => {
       .sandbox(local())
       .delegate(child)
       .on("delegate.started", (event) => delegateEvents.push(event.type))
-      .on("delegate.completed", (event) => delegateEvents.push(event.type));
+      .on("delegate.completed", (event) => delegateEvents.push(event.type))
+      .on("tool.completed", (event) => toolEvents.push(event.tool));
     await parent.start();
     expect((await read(await parent.invoke("parent secret"))).text).toBe("child-result");
     expect(delegateEvents).toEqual(["delegate.started", "delegate.completed"]);
+    expect(toolEvents).toEqual(["child_lookup"]);
     await parent.stop();
   });
 

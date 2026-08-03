@@ -3,14 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch agent.ts",
+    "dev": "node --env-file=.env --watch agent.ts",
     "build": "tsdown",
-    "start": "node dist/agent.mjs"
+    "start": "node --env-file=.env dist/agent.mjs"
   },
   "dependencies": {
     "@xsaf/agent": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/agent@main",
     "@xsaf/tui": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/tui@main",
-    "srvx": "^0.12.5"
+    "srvx": "^0.12.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24",
