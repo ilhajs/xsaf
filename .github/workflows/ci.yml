@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun test
+      - run: bun run build
+      - name: Smoke test built package with Bun
+        working-directory: packages/xsaf
+        run: bun -e "import('./dist/index.mjs').then(m => { if (!m.xsaf) process.exit(1) })"
+      - name: Smoke test built package with Node
+        working-directory: packages/xsaf
+        run: node --input-type=module -e "const m = await import('./dist/index.mjs'); if (!m.xsaf) process.exit(1)"

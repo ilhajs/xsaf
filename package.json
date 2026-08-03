@@ -1,0 +1,26 @@
+{
+  "name": "xsaf-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "typecheck": "bun run --cwd packages/xsaf typecheck",
+    "test": "bun test packages/xsaf/test",
+    "build": "bun run --cwd packages/xsaf build",
+    "lint": "oxlint",
+    "fmt": "oxfmt --write .",
+    "fmt:check": "oxfmt --check .",
+    "check": "bun run typecheck && bun run lint && bun run fmt:check && bun test && bun run build"
+  },
+  "devDependencies": {
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/bun": "latest",
+    "oxfmt": "^0.61.0",
+    "oxlint": "^1.76.0",
+    "tsdown": "^0.22.14",
+    "typescript": "^7"
+  }
+}

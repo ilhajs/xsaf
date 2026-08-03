@@ -1,0 +1,75 @@
+{
+  "name": "xsaf",
+  "version": "0.1.0-alpha.0",
+  "description": "Extra Small Agent Framework built on xsAI, Hono, and MCP v2",
+  "keywords": [
+    "agent",
+    "ai",
+    "hono",
+    "mcp",
+    "xsai"
+  ],
+  "homepage": "https://github.com/ilhajs/xsaf#readme",
+  "bugs": "https://github.com/ilhajs/xsaf/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilhajs/xsaf.git"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SPEC.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./channel/http": {
+      "types": "./dist/channel/http.d.mts",
+      "import": "./dist/channel/http.mjs"
+    },
+    "./channel/mock": {
+      "types": "./dist/channel/mock.d.mts",
+      "import": "./dist/channel/mock.mjs"
+    },
+    "./model/mock": {
+      "types": "./dist/model/mock.d.mts",
+      "import": "./dist/model/mock.mjs"
+    },
+    "./sandbox/local": {
+      "types": "./dist/sandbox/local.d.mts",
+      "import": "./dist/sandbox/local.mjs"
+    },
+    "./sandbox/host": {
+      "types": "./dist/sandbox/host.d.mts",
+      "import": "./dist/sandbox/host.mjs"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.mts",
+      "import": "./dist/mcp/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "example:mock": "bun examples/mock-agent.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/hono": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "hono": "^4.12.34",
+    "xsai": "^0.5.0-beta.7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
