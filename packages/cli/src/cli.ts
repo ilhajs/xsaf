@@ -2,11 +2,11 @@ import { Cli } from "clerc";
 import tui from "./index";
 import httpAgent from "./http";
 
-const cli = Cli()
+Cli()
   .scriptName("xsaf")
   .description("Interactive terminal client for a remote XSAF agent")
   .version("0.1.0-alpha.0")
-  .command("chat", "Open an interactive chat", {
+  .command("", "Open an interactive chat", {
     flags: {
       url: {
         type: String,
@@ -27,7 +27,7 @@ const cli = Cli()
       },
     },
   })
-  .on("chat", async ({ flags }) => {
+  .on("", async ({ flags }) => {
     const apiKey = process.env["API_KEY"];
     const agent = httpAgent({
       url: flags.url,
@@ -45,6 +45,5 @@ const cli = Cli()
       process.once("SIGTERM", () => void chat.stop());
       chat.start();
     });
-  });
-
-await cli.parse(["chat", ...process.argv.slice(2)]);
+  })
+  .parse();

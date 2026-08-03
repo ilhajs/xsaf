@@ -8,17 +8,17 @@ import { z } from "zod";
 // TODO: Fill .env
 const env = z
   .object({
-    XSAF_MODEL: z.string(),
-    XSAF_API_KEY: z.string(),
-    XSAF_BASE_URL: z.string(),
+    XSAF_AI_MODEL: z.string(),
+    XSAF_AI_API_KEY: z.string(),
+    XSAF_AI_BASE_URL: z.string(),
     XSAF_CHAT_KEY: z.string().min(1),
   })
   .parse(process.env);
 
 const model = xsai({
-  model: env.XSAF_MODEL,
-  apiKey: env.XSAF_API_KEY,
-  baseURL: env.XSAF_BASE_URL,
+  model: env.XSAF_AI_MODEL,
+  apiKey: env.XSAF_AI_API_KEY,
+  baseURL: env.XSAF_AI_BASE_URL,
 });
 
 const weatherAdvisor = xsaf

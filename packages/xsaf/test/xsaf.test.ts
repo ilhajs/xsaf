@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { createORPCClient, type Client } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
 import type { XsafToolSchema } from "../src";
 import { ToolApprovalError, ToolTimeoutError, xsaf } from "../src";
 import type {
@@ -68,6 +70,38 @@ function objectSchema(): XsafToolSchema<unknown, { readonly value: number }> {
       },
     },
   };
+}
+
+type ChatEvent =
+  | { readonly type: "message.delta"; readonly text: string }
+  | { readonly type: "message.completed"; readonly sessionId: string }
+  | { readonly type: string; readonly [key: string]: unknown };
+
+type ChatClient = Client<
+  Record<never, never>,
+  { readonly text: string; readonly sessionId?: string },
+  AsyncIterator<ChatEvent, void, unknown>,
+  unknown
+>;
+
+function createChatClient(fetch: typeof globalThis.fetch, apiKey?: string): ChatClient {
+  const link = new RPCLink({
+    url: "http://localhost/chat",
+    fetch,
+    ...(apiKey ? { headers: { authorization: `Bearer ${apiKey}` } } : {}),
+  });
+  return createORPCClient<ChatClient>(link);
+}
+
+async function collectChat(
+  iterator: AsyncIterator<ChatEvent, void, unknown>,
+): Promise<ChatEvent[]> {
+  const events: ChatEvent[] = [];
+  while (true) {
+    const result = await iterator.next();
+    if (result.done) return events;
+    events.push(result.value);
+  }
 }
 
 async function read(
@@ -277,41 +311,35 @@ describe("runtime, memory, and channels", () => {
     await builder.stop();
   });
 
-  test("serves authenticated JSON and streaming HTTP channel responses", async () => {
+  test("serves authenticated SSE iterator through the HTTP channel", async () => {
     const channel = http({ path: "/chat", apiKey: "test-key" });
     const builder = xsaf.agent(config(mockModel({ response: "http-channel" }))).channel(channel);
     await builder.start();
-    const unauthorized = await builder.app.request("http://localhost/chat", {
-      method: "POST",
-      headers: { host: "localhost", "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: "http-chat", text: "hello" }),
-    });
-    expect(unauthorized.status).toBe(401);
 
-    const response = await builder.app.request("http://localhost/chat", {
-      method: "POST",
-      headers: {
-        host: "localhost",
-        authorization: "Bearer test-key",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ sessionId: "http-chat", text: "hello" }),
-    });
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ text: "http-channel", sessionId: "http-chat" });
+    const fetchImpl = (async (
+      input: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1],
+    ) => {
+      const req = new Request(input, init);
+      return builder.app.request(req.url, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+      });
+    }) as unknown as typeof fetch;
 
-    const streamed = await builder.app.request("http://localhost/chat", {
-      method: "POST",
-      headers: {
-        host: "localhost",
-        accept: "text/event-stream",
-        authorization: "Bearer test-key",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ sessionId: "http-stream", text: "hello" }),
-    });
-    expect(streamed.status).toBe(200);
-    expect(await streamed.text()).toContain('event: message.delta\ndata: {"text":"http-channel"}');
+    const client = createChatClient(fetchImpl);
+    await expect(client({ sessionId: "http-chat", text: "hello" })).rejects.toThrow("UNAUTHORIZED");
+
+    const authClient = createChatClient(fetchImpl, "test-key");
+    const iterator = await authClient({ sessionId: "http-chat", text: "hello" });
+    const events = await collectChat(iterator);
+
+    expect(events).toEqual([
+      { type: "message.delta", text: "http-channel" },
+      { type: "message.completed", sessionId: "http-chat" },
+    ]);
+
     await builder.stop();
   });
 
@@ -335,23 +363,36 @@ describe("runtime, memory, and channels", () => {
       })
       .channel(http({ path: "/chat" }));
     await builder.start();
-    const response = await builder.app.request("http://localhost/chat", {
-      method: "POST",
-      headers: {
-        host: "localhost",
-        accept: "text/event-stream",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ sessionId: "weather", text: "weather" }),
+
+    const fetchImpl = (async (
+      input: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1],
+    ) => {
+      const req = new Request(input, init);
+      return builder.app.request(req.url, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+      });
+    }) as unknown as typeof fetch;
+
+    const client = createChatClient(fetchImpl);
+    const iterator = await client({ sessionId: "weather", text: "weather" });
+    const events = await collectChat(iterator);
+
+    expect(events).toContainEqual({
+      type: "tool.called",
+      tool: "weather_lookup",
+      sessionId: "weather",
     });
-    const events = await response.text();
-    expect(events).toContain(
-      'event: tool.called\ndata: {"type":"tool.called","tool":"weather_lookup","sessionId":"weather"}',
-    );
-    expect(events).toContain(
-      'event: tool.completed\ndata: {"type":"tool.completed","tool":"weather_lookup","sessionId":"weather"}',
-    );
-    expect(events).toContain('event: message.delta\ndata: {"text":"sunny"}');
+    expect(events).toContainEqual({
+      type: "tool.completed",
+      tool: "weather_lookup",
+      sessionId: "weather",
+    });
+    expect(events).toContainEqual({ type: "message.delta", text: "sunny" });
+    expect(events).toContainEqual({ type: "message.completed", sessionId: "weather" });
+
     await builder.stop();
   });
 

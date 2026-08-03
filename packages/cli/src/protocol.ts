@@ -42,6 +42,16 @@ export type XsafEvent =
       readonly sessionId: string;
     };
 
+export type ChatEvent =
+  | XsafEvent
+  | {
+      readonly type: "approval.required" | "approval.granted";
+      readonly tool: string;
+      readonly sessionId: string;
+    }
+  | { readonly type: "message.delta"; readonly text: string }
+  | { readonly type: "message.completed"; readonly sessionId: string };
+
 export type EventType = XsafEvent["type"];
 export type EventFor<Type extends EventType> = Extract<XsafEvent, { readonly type: Type }>;
 export type EventHandler<Type extends EventType> = (event: EventFor<Type>) => void | Promise<void>;

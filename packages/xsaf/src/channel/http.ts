@@ -1,10 +1,14 @@
-import { streamSSE } from "hono/streaming";
+import { ORPCError, eventIterator, os } from "@orpc/server";
+import { RPCHandler } from "@orpc/server/fetch";
+import type { Context } from "hono";
+import type { StandardSchemaV1 } from "../standard-schema";
 import type {
   ChannelContext,
   ChannelPayload,
   ChannelTarget,
   EventType,
   XsafChannelDriver,
+  XsafEvent,
 } from "../types";
 
 export interface HttpChannelOptions {
@@ -19,6 +23,28 @@ type Pending = {
   reject(error: unknown): void;
 };
 
+type ChatInput = {
+  readonly text: string;
+  readonly sessionId?: string;
+};
+
+type ChatEvent =
+  | Extract<
+      XsafEvent,
+      {
+        readonly type:
+          | "tool.called"
+          | "tool.completed"
+          | "tool.failed"
+          | "delegate.started"
+          | "delegate.completed"
+          | "approval.required"
+          | "approval.granted";
+      }
+    >
+  | { readonly type: "message.delta"; readonly text: string }
+  | { readonly type: "message.completed"; readonly sessionId: string };
+
 const forwardedEvents = [
   "tool.called",
   "tool.completed",
@@ -29,11 +55,111 @@ const forwardedEvents = [
   "approval.granted",
 ] as const satisfies readonly EventType[];
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Agent request failed";
+function schema<Output>(
+  validate: (value: unknown) => value is Output,
+  message: string,
+): StandardSchemaV1<unknown, Output> {
+  return {
+    "~standard": {
+      version: 1,
+      vendor: "xsaf",
+      validate(value) {
+        return validate(value) ? { value } : { issues: [{ message }] };
+      },
+    },
+  };
 }
 
-/** Fetch-native HTTP channel mounted on the agent's shared Hono app. */
+function isChatInput(value: unknown): value is ChatInput {
+  if (!value || typeof value !== "object") return false;
+  const input = value as Record<string, unknown>;
+  return (
+    typeof input["text"] === "string" &&
+    input["text"].trim().length > 0 &&
+    (input["sessionId"] === undefined || typeof input["sessionId"] === "string")
+  );
+}
+
+function isChatEvent(value: unknown): value is ChatEvent {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Record<string, unknown>;
+  if (typeof event["type"] !== "string") return false;
+  switch (event["type"]) {
+    case "message.delta":
+      return typeof event["text"] === "string";
+    case "message.completed":
+      return typeof event["sessionId"] === "string";
+    case "tool.called":
+    case "tool.completed":
+      return typeof event["tool"] === "string" && typeof event["sessionId"] === "string";
+    case "tool.failed":
+      return (
+        typeof event["tool"] === "string" &&
+        typeof event["sessionId"] === "string" &&
+        typeof event["error"] === "string"
+      );
+    case "delegate.started":
+    case "delegate.completed":
+      return typeof event["delegate"] === "string" && typeof event["sessionId"] === "string";
+    case "approval.required":
+    case "approval.granted":
+      return typeof event["tool"] === "string" && typeof event["sessionId"] === "string";
+    default:
+      return false;
+  }
+}
+
+const chatInputSchema = schema(isChatInput, "Expected a non-empty text and optional sessionId");
+const chatEventSchema = schema(isChatEvent, "Invalid XSAF chat event");
+
+class AsyncQueue<Value> implements AsyncIterableIterator<Value> {
+  readonly #values: Value[] = [];
+  readonly #waiters: Array<{
+    resolve(result: IteratorResult<Value>): void;
+    reject(error: unknown): void;
+  }> = [];
+  #closed = false;
+  #error: unknown;
+
+  push(value: Value): void {
+    if (this.#closed) return;
+    const waiter = this.#waiters.shift();
+    if (waiter) waiter.resolve({ value, done: false });
+    else this.#values.push(value);
+  }
+
+  close(): void {
+    if (this.#closed) return;
+    this.#closed = true;
+    for (const waiter of this.#waiters.splice(0)) waiter.resolve({ value: undefined, done: true });
+  }
+
+  fail(error: unknown): void {
+    if (this.#closed) return;
+    this.#error = error;
+    this.#closed = true;
+    for (const waiter of this.#waiters.splice(0)) waiter.reject(error);
+  }
+
+  next(): Promise<IteratorResult<Value>> {
+    const value = this.#values.shift();
+    if (value !== undefined) return Promise.resolve({ value, done: false });
+    if (this.#error !== undefined) return Promise.reject(this.#error);
+    if (this.#closed) return Promise.resolve({ value: undefined, done: true });
+    return new Promise((resolve, reject) => this.#waiters.push({ resolve, reject }));
+  }
+
+  return(): Promise<IteratorResult<Value>> {
+    this.close();
+    return Promise.resolve({ value: undefined, done: true });
+  }
+
+  [Symbol.asyncIterator](): AsyncIterableIterator<Value> {
+    return this;
+  }
+}
+
+/** Fetch-native oRPC Event Iterator channel mounted on the agent's shared Hono app. */
 class HttpChannel implements XsafChannelDriver {
   readonly name: string;
   readonly path: string;
@@ -48,77 +174,69 @@ class HttpChannel implements XsafChannelDriver {
   }
 
   listen(context: ChannelContext): void {
-    context.app.post(this.path, async (requestContext) => {
-      if (this.#closed) return requestContext.json({ error: "HTTP channel is closed" }, 503);
-      if (this.#apiKey) {
-        const authorization = requestContext.req.header("authorization");
-        if (authorization !== `Bearer ${this.#apiKey}`)
-          return requestContext.json({ error: "Unauthorized" }, 401);
-      }
+    const channel = this;
+    const procedure = os
+      .$context<{ readonly authorization: string | null }>()
+      .use(({ context: requestContext, next }) => {
+        if (channel.#apiKey && requestContext.authorization !== `Bearer ${channel.#apiKey}`) {
+          throw new ORPCError("UNAUTHORIZED");
+        }
+        return next();
+      })
+      .input(chatInputSchema)
+      .output(eventIterator(chatEventSchema))
+      .handler(async function* ({ input }) {
+        if (channel.#closed) throw new ORPCError("SERVICE_UNAVAILABLE");
+        const sessionId = input.sessionId || crypto.randomUUID();
+        const queue = new AsyncQueue<ChatEvent>();
+        const payload = channel.#waitForPayload(sessionId);
+        const unsubscribe = forwardedEvents.map((type) =>
+          context.on(type, (event) => {
+            if (event.sessionId === sessionId || event.sessionId.startsWith(`${sessionId}:`))
+              queue.push(event);
+          }),
+        );
 
-      const body = await requestContext.req.json<{
-        sessionId?: unknown;
-        text?: unknown;
-      }>();
-      if (typeof body.text !== "string" || body.text.trim().length === 0)
-        return requestContext.json({ error: "text must be a non-empty string" }, 400);
-      const sessionId =
-        typeof body.sessionId === "string" && body.sessionId.length > 0
-          ? body.sessionId
-          : crypto.randomUUID();
-
-      if (requestContext.req.header("accept")?.includes("text/event-stream")) {
-        return streamSSE(requestContext, async (stream) => {
-          const payload = this.#waitForPayload(sessionId);
-          let writes = Promise.resolve();
-          const write = (event: string, data: unknown) => {
-            writes = writes.then(() => stream.writeSSE({ event, data: JSON.stringify(data) }));
-            return writes;
-          };
-          const unsubscribe = forwardedEvents.map((type) =>
-            context.on(type, async (event) => {
-              if (event.sessionId === sessionId || event.sessionId.startsWith(`${sessionId}:`))
-                await write(event.type, event);
-            }),
-          );
-
+        void (async () => {
           try {
-            await context.dispatch({ sessionId, text: body.text as string });
+            await context.dispatch({ sessionId, text: input.text });
             const result = await payload;
             if (typeof result === "string") {
-              await write("message.delta", { text: result });
+              queue.push({ type: "message.delta", text: result });
             } else if (Symbol.asyncIterator in result) {
-              for await (const chunk of result) await write("message.delta", { text: chunk });
+              for await (const chunk of result) queue.push({ type: "message.delta", text: chunk });
             } else {
-              await write("message.delta", { text: result.text });
+              queue.push({ type: "message.delta", text: result.text });
             }
-            await write("message.completed", { sessionId });
+            queue.push({ type: "message.completed", sessionId });
+            queue.close();
           } catch (error) {
-            this.#shift(sessionId);
-            await write("error", { message: errorMessage(error) });
-          } finally {
-            for (const stop of unsubscribe) stop();
-            await writes;
+            channel.#shift(sessionId);
+            queue.fail(error);
           }
-        });
-      }
+        })();
 
-      const payload = this.#waitForPayload(sessionId);
-      try {
-        await context.dispatch({ sessionId, text: body.text });
-        const result = await payload;
-        if (typeof result === "string") return requestContext.json({ text: result, sessionId });
-        if (Symbol.asyncIterator in result) {
-          return streamSSE(requestContext, async (stream) => {
-            for await (const chunk of result) await stream.writeSSE({ data: chunk });
-          });
+        try {
+          yield* queue;
+        } finally {
+          for (const stop of unsubscribe) stop();
+          channel.#shift(sessionId);
+          queue.close();
         }
-        return requestContext.json({ ...result, sessionId });
-      } catch (error) {
-        this.#shift(sessionId);
-        throw error;
-      }
-    });
+      });
+
+    const handler = new RPCHandler(procedure);
+    const handle = async (requestContext: Context) => {
+      const { matched, response } = await handler.handle(requestContext.req.raw, {
+        prefix: this.path as `/${string}`,
+        context: { authorization: requestContext.req.header("authorization") ?? null },
+      });
+      if (!matched) return requestContext.json({ error: "Not Found" }, 404);
+      return requestContext.newResponse(response.body, response);
+    };
+
+    context.app.all(this.path, handle);
+    context.app.all(`${this.path}/*`, handle);
   }
 
   async send(target: ChannelTarget, payload: ChannelPayload): Promise<void> {
