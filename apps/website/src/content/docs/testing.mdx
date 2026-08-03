@@ -1,0 +1,118 @@
+---
+title: Testing
+description: Test agents, channels, streaming, tools, and Hono routes offline with deterministic mocks.
+sidebar:
+  order: 7
+---
+
+XSAF's public mock adapters keep tests deterministic and ensure default test suites do not require network access or AI tokens.
+
+<CardGrid>
+  <Card title="Test without tokens" icon="ph:test-tube" href="#test-a-channel-round-trip">
+    Test model requests, memory, channels, and lifecycle without mocking private modules.
+  </Card>
+  <Card title="Exercise HTTP in memory" icon="ph:browser" href="#test-hono-without-a-listener">
+    Call `agent.app.request()` or `agent.fetch()` with web-standard requests instead of opening a
+    port.
+  </Card>
+</CardGrid>
+
+## Test a channel round trip
+
+```ts title="agent.test.ts"
+import { expect, test } from "bun:test";
+import { xsaf } from "xsaf";
+import mockChannel from "xsaf/channel/mock";
+import mockModel from "xsaf/model/mock";
+
+test("replies through a channel", async () => {
+  const model = mockModel({ response: "mock reply" });
+  const channel = mockChannel();
+  const builder = xsaf
+    .agent({
+      model: "mock/model",
+      baseURL: "mock://local",
+      apiKey: "not-used",
+      persona: "Test agent",
+      stream: false,
+      modelAdapter: model,
+    })
+    .channel(channel);
+
+  await builder.start();
+  try {
+    await channel.receive({ sessionId: "test", text: "hello" });
+    expect(channel.sent[0]?.payload).toBe("mock reply");
+  } finally {
+    await builder.stop();
+  }
+});
+```
+
+`MockModelAdapter.requests` records each request. Use it to assert message history, available tools, reasoning, and step configuration without mocking private modules.
+
+## Return responses dynamically
+
+```ts
+const model = mockModel({
+  response(request) {
+    const latest = request.messages.at(-1)?.content;
+    return { text: `received:${latest}` };
+  },
+});
+```
+
+`response` accepts a static string, a `ModelResponse`, or a callback. `MockModelAdapter` implements non-streaming `generate()` only; when agent streaming is enabled, XSAF falls back to that method. Supply a small custom `XsafModelAdapter.stream()` implementation when a test must control lazy chunks and completion behavior.
+
+## Test Hono without a listener
+
+```ts
+const response = await builder.app.request("http://localhost/invoke", {
+  method: "POST",
+  headers: {
+    host: "localhost",
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({ sessionId: "http-test", prompt: "hello" }),
+});
+
+expect(response.status).toBe(200);
+expect(await response.json()).toEqual({ text: "mock reply" });
+```
+
+The explicit `host` header satisfies the Hono/MCP host protection used by the shared application.
+
+## Test MCP without network calls
+
+`mcp({ fetch })` accepts an injected fetch-compatible function. Return mocked JSON-RPC responses for `tools/list`, `tools/call`, resource reads, and prompt retrieval. This seam tests client protocol behavior without a live server.
+
+## Test executable tools
+
+Tools still require an explicit sandbox in tests. When the function is trusted test code:
+
+```ts
+import local from "xsaf/sandbox/local";
+
+const builder = xsaf.agent(config).sandbox(local()).tool(tool);
+```
+
+This is a deliberate no-isolation adapter, not a production sandbox.
+
+## Verify lifecycle
+
+Always stop started builders in `finally`. Add focused tests for:
+
+- no driver work before `.start()`
+- same-session serialization and cross-session concurrency
+- partial-startup cleanup
+- reverse-order shutdown with aggregated errors
+- validation and approval before execution
+- timeout and cancellation without retries
+- complete stream consumption and memory persistence
+
+## Next steps
+
+- [Tool pipeline](/tools)
+- [Sessions, streaming, and memory](/sessions-memory#sessions-and-streaming)
+- [Tools & Security](/tools#sandbox-security)
+- [Roadmap](/roadmap)

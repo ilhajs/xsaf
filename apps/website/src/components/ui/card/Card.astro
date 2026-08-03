@@ -1,0 +1,43 @@
+---
+import { Icon } from "astro-icon/components";
+import { cn } from "@/lib/cn";
+import type { HTMLAttributes } from "astro/types";
+
+interface CardBaseProps {
+  title: string;
+  /** Iconify icon name, e.g. `ph:lightning`. */
+  icon?: string;
+  class?: HTMLAttributes<"article">["class"];
+}
+
+type Props = CardBaseProps &
+  (
+    | ({ href: string } & Omit<HTMLAttributes<"a">, "class" | "href" | "title">)
+    | ({ href?: never } & Omit<HTMLAttributes<"article">, "class" | "title">)
+  );
+
+const { title, icon, href, class: className, ...attrs } = Astro.props;
+const baseClass = "my-4 block rounded-lg bg-card p-5 shadow-sm ring ring-border";
+const linkedClass =
+  "no-underline transition-colors hover:bg-muted/50 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+---
+
+{
+  href ? (
+    <a href={href} class={cn(baseClass, linkedClass, className)} {...attrs}>
+      {icon && <Icon name={icon} class="mb-2.5 block w-6 h-6 text-foreground" />}
+      <h3 class="m-0 text-base font-semibold leading-snug text-foreground">{title}</h3>
+      <div class="mt-1.5 text-sm leading-normal text-muted-foreground">
+        <slot />
+      </div>
+    </a>
+  ) : (
+    <article class={cn(baseClass, className)} {...attrs}>
+      {icon && <Icon name={icon} class="mb-2.5 block w-6 h-6 text-foreground" />}
+      <h3 class="m-0 text-base font-semibold leading-snug text-foreground">{title}</h3>
+      <div class="mt-1.5 text-sm leading-normal text-muted-foreground">
+        <slot />
+      </div>
+    </article>
+  )
+}

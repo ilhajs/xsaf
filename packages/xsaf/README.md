@@ -59,7 +59,7 @@ await agent.stop();
 bun install
 bun run typecheck
 bun run lint
-bun run format:check
+bun run fmt:check
 bun test
 bun run build
 ```

@@ -1,0 +1,121 @@
+---
+title: Getting started
+description: Install XSAF and run a deterministic agent without API tokens or network calls.
+audience: human
+sidebar:
+  order: 0
+---
+
+This quickstart creates a complete agent with XSAF's public mock adapters. It performs no network request and opens no listening socket.
+
+<Steps>
+  <Step title="Install XSAF">
+
+<PackageManagers pkg="xsaf" />
+
+XSAF is ESM-only. Node.js 20 or newer is the declared Node runtime.
+
+  </Step>
+
+  <Step title="Create a mock agent">
+
+```ts title="src/agent.ts"
+import { xsaf } from "xsaf";
+import mockChannel from "xsaf/channel/mock";
+import mockModel from "xsaf/model/mock";
+
+const model = mockModel({
+  response(request) {
+    const prompt = request.messages.findLast((message) => message.role === "user")?.content;
+
+    return { text: `Mock assistant received: ${prompt ?? ""}` };
+  },
+});
+
+const channel = mockChannel();
+
+const builder = xsaf
+  .agent({
+    model: "mock/model",
+    baseURL: "mock://local",
+    apiKey: "not-used",
+    persona: "You are a deterministic test agent.",
+    stream: false,
+    modelAdapter: model,
+  })
+  .channel(channel)
+  .serve({ transport: "http", path: "/mcp" });
+
+await builder.start();
+
+await channel.receive({
+  sessionId: "demo",
+  text: "hello xsaf",
+});
+
+console.log(channel.sent[0]?.payload);
+
+await builder.stop();
+```
+
+`apiKey` and the other required agent fields are still validated when a custom model adapter is used. The mock adapter ignores their values.
+
+  </Step>
+
+  <Step title="Run the file">
+
+```sh
+bun src/agent.ts
+```
+
+Expected output:
+
+```text
+Mock assistant received: hello xsaf
+```
+
+  </Step>
+</Steps>
+
+## Invoke through Hono
+
+Every agent owns a Hono app. Use `app.request()` in tests or wrap `agent.fetch(request)` for your runtime's HTTP server:
+
+```ts
+const response = await builder.app.request("http://localhost/invoke", {
+  method: "POST",
+  headers: {
+    host: "localhost",
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({
+    sessionId: "http-demo",
+    prompt: "hello Hono",
+  }),
+});
+
+console.log(await response.json());
+```
+
+`POST /invoke` collects a streamed model result before returning JSON. Use direct invocation or the HTTP channel when chunk-by-chunk delivery is required.
+
+## Use a real model
+
+Omit `modelAdapter` to use the bundled xsAI adapter:
+
+```ts
+const builder = xsaf.agent({
+  model: "your-provider/model",
+  baseURL: process.env.MODEL_BASE_URL!,
+  apiKey: process.env.MODEL_API_KEY!,
+  persona: "You are a concise assistant.",
+});
+```
+
+Provider behavior and model identifiers are determined by the xsAI-compatible endpoint. Keep credentials outside source control.
+
+## Next steps
+
+- [Configure lifecycle and invocation](/components)
+- [Add a validated tool](/tools)
+- [Test with public mocks](/testing)

@@ -1,0 +1,83 @@
+---
+title: Roadmap
+description: Current alpha boundaries, security caveats, and features planned beyond 0.1.0-alpha.0.
+sidebar:
+  order: 9
+  badge:
+    text: Alpha
+    variant: caution
+---
+
+XSAF `0.1.0-alpha.0` stabilizes the core builder, lifecycle, model adapter, tool pipeline, Hono backbone, and modern MCP integration. It is not a production-complete agent platform.
+
+## Supported alpha surface
+
+- ESM-only TypeScript package
+- Declared Node.js support from version 20
+- Bun development and offline test path
+- Fetch-native Hono application for compatible runtimes
+- xsAI model adapter plus public deterministic mock adapter
+- Standard Schema V1 validation and Standard JSON Schema V1 tool publication
+- In-memory memory driver
+- Mock and HTTP channels
+- Modern HTTP MCP client and server using protocol `2026-07-28`
+- Structural memory, channel, scheduler, sandbox, MCP, and serve drivers
+- Process-local cron scheduler
+
+Broader Deno and Workers support depends on the target runtime and all installed dependencies. Validate the built package in the intended deployment environment.
+
+## Security boundaries
+
+- No production isolation implementation is bundled.
+- `xsaf/sandbox/local` and `xsaf/sandbox/host` execute in the host process and provide no isolation.
+- Sandbox permission metadata is not enforcement by itself.
+- Tool timeouts and caller cancellation are cooperative.
+- HTTP routes do not include application authentication; compose it with Hono or deployment infrastructure.
+- `GET /health` is static and does not inspect external dependencies.
+- MCP, tool input, memory, and channel metadata remain untrusted.
+
+## Streaming caveat
+
+Streaming preserves backpressure and saves output after consumption. A same-session call stays locked until the stream's `completed` promise settles. Abandoning a stream without consuming or closing it can block that session.
+
+## MCP caveats
+
+- Legacy protocol traffic is rejected.
+- HTTP is the only built-in transport.
+- The client parses JSON, not SSE-formatted MCP responses.
+- Remote tools are discovered at connection time rather than refreshed dynamically.
+- Resource and prompt access is by exact identifier.
+- `.serve()` snapshots tools at startup, so builder registration order matters.
+
+## Non-durable components
+
+Default memory and cron scheduling are process-local. They do not provide persistence, distributed coordination, backfill, replay, or restart recovery.
+
+## Planned work
+
+The following are intentionally outside the alpha package:
+
+- bundled AgentOS implementation
+- SQLite memory adapter
+- Telegram, Discord, Slack, and WebSocket channels
+- socket listeners and stdio MCP transport
+- distributed or durable scheduling
+- workflow replay and automatic compaction
+- multi-tenant authentication and channel rate limiting
+- CLI scaffolding, dashboards, and built-in container or browser parity
+
+## Before production use
+
+1. Provide an isolation driver suitable for the trust boundary.
+2. Add authentication and authorization around HTTP routes.
+3. Select durable memory and scheduling drivers when restart recovery matters.
+4. Test stream cancellation and tool timeout behavior for every provider.
+5. Validate Node, Bun, Deno, or Workers compatibility in the actual deployment.
+6. Pin the alpha version and review changes before upgrading.
+
+## Related documentation
+
+- [Tools & Security](/tools#sandbox-security)
+- [Sessions & Memory](/sessions-memory#sessions-and-streaming)
+- [MCP](/mcp)
+- [Testing](/testing)

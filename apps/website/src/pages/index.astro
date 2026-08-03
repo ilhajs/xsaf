@@ -1,0 +1,164 @@
+---
+import { Icon } from "astro-icon/components";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import Code from "../components/ui/code/Code.astro";
+import { config } from "virtual:nimbus/config";
+
+const base = import.meta.env.BASE_URL;
+const href = (path: string) => `${base}${path}`;
+const example = `const agent = xsaf
+  .agent(config)
+  .sandbox(sandbox)
+  .tool(search)
+  .memory(memory)
+  .serve({ transport: "http" });
+
+await agent.start();`;
+
+const capabilities = [
+  {
+    icon: "ph:flow-arrow",
+    title: "Fluent agents",
+    text: "Compose models, tools, memory, channels, delegates, and schedules through one small API.",
+  },
+  {
+    icon: "ph:globe-hemisphere-west",
+    title: "Fetch native",
+    text: "Every agent owns a Hono app and a web-standard fetch handler. XSAF never forces a server runtime.",
+  },
+  {
+    icon: "ph:plugs-connected",
+    title: "MCP v2",
+    text: "Serve local tools and consume remote tools through the official MCP and Hono backbone.",
+  },
+  {
+    icon: "ph:shield-check",
+    title: "Explicit security",
+    text: "Validation, approval, timeouts, retries, and sandbox selection run through one tool pipeline.",
+  },
+  {
+    icon: "ph:chats-circle",
+    title: "Session aware",
+    text: "Serialize work per session while allowing independent sessions to run concurrently.",
+  },
+  {
+    icon: "ph:test-tube",
+    title: "Offline testing",
+    text: "Deterministic model and channel adapters test complete agents without tokens or network calls.",
+  },
+];
+---
+
+<BaseLayout title={config.title} description={config.description}>
+  <div class="flex min-h-screen flex-col bg-background">
+    <Header showSidebar={false} />
+
+    <main class="flex-1">
+      <section class="mx-auto max-w-5xl px-6 pb-16 pt-20 sm:pt-28">
+        <div class="max-w-3xl">
+          <div
+            class="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+            TypeScript · ESM · Alpha
+          </div>
+
+          <h1
+            class="text-balance text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-6xl"
+          >
+            Small framework.<br />Clear agent boundaries.
+          </h1>
+          <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            XSAF brings models, tools, memory, Hono, and MCP together without hiding lifecycle or
+            security decisions behind a large runtime.
+          </p>
+
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a
+              href={href("getting-started")}
+              class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground no-underline transition-opacity hover:opacity-90"
+            >
+              Get started
+              <Icon name="ph:arrow-right" class="h-4 w-4" />
+            </a>
+            <a
+              href="https://github.com/ilhajs/xsaf"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground no-underline transition-colors hover:bg-accent"
+            >
+              <Icon name="ph:github-logo" class="h-4 w-4" />
+              View on GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="code-window mt-16 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div class="flex items-center gap-1.5 border-b border-border px-4 py-3">
+            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-muted-foreground/25"></span>
+            <span class="ml-2 font-mono text-xs text-muted-foreground">agent.ts</span>
+          </div>
+          <Code code={example} lang="ts" />
+        </div>
+      </section>
+
+      <section class="border-y border-border bg-card/40">
+        <div class="mx-auto max-w-5xl px-6 py-16">
+          <div class="max-w-2xl">
+            <h2 class="text-2xl font-semibold tracking-tight text-foreground">Everything essential</h2>
+            <p class="mt-2 text-muted-foreground">
+              A focused runtime with explicit extension points and no mandatory infrastructure.
+            </p>
+          </div>
+
+          <div class="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            {
+              capabilities.map((capability) => (
+                <article class="bg-background p-6">
+                  <Icon name={capability.icon} class="h-5 w-5 text-primary" />
+                  <h3 class="mt-4 text-sm font-semibold text-foreground">{capability.title}</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{capability.text}</p>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-16 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-foreground">Build the smallest useful agent.</h2>
+          <p class="mt-1 text-muted-foreground">Start offline, then replace adapters as your system grows.</p>
+        </div>
+        <a
+          href={href("getting-started")}
+          class="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-primary no-underline hover:underline"
+        >
+          Read the quickstart
+          <Icon name="ph:arrow-right" class="h-4 w-4" />
+        </a>
+      </section>
+    </main>
+  </div>
+</BaseLayout>
+
+<style>
+  .code-window :global(.nb-code-figure) {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .code-window :global(pre.shiki) {
+    margin: 0;
+    overflow-x: auto;
+    background: transparent !important;
+    padding: 1.25rem;
+    font-size: 0.875rem;
+    line-height: 1.75rem;
+  }
+</style>

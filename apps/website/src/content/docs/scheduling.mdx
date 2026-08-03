@@ -1,0 +1,65 @@
+---
+title: Scheduling
+description: Run prompts through the normal agent path with process-local five-field cron schedules.
+sidebar:
+  order: 6
+---
+
+The bundled `CronScheduler` provides single-process scheduling. It is appropriate for alpha experiments where process restart and missed ticks are acceptable, not durable workflow execution.
+
+## Add a schedule
+
+```ts
+const builder = xsaf.agent(config).schedule({
+  cron: "*/15 * * * *",
+  timezone: "UTC",
+  sessionId: "heartbeat:status",
+  prompt: "Check current service status",
+  runImmediately: true,
+  async onResult(result) {
+    console.log(result.text);
+  },
+});
+```
+
+`prompt` can also be an async function returning a string. Scheduled requests use the same model, memory, tools, approval rules, and event bus as direct invocation.
+
+## Cron syntax
+
+XSAF accepts exactly five fields:
+
+```text
+minute hour day-of-month month day-of-week
+```
+
+Supported forms include `*`, comma lists, numeric ranges, `/step`, and combinations such as `*/15`. Ranges are:
+
+| Field   | Range                               |
+| ------- | ----------------------------------- |
+| Minute  | `0-59`                              |
+| Hour    | `0-23`                              |
+| Day     | `1-31`                              |
+| Month   | `1-12`                              |
+| Weekday | `0-7`, where `0` and `7` are Sunday |
+
+Timezone defaults to `UTC` and is validated with `Intl.DateTimeFormat`.
+
+## Runtime behavior
+
+- The bundled scheduler checks every 15 seconds.
+- A matching minute fires at most once.
+- A new tick is skipped while its preceding run is still active.
+- `runImmediately` awaits one run during startup.
+- Default session ID is `heartbeat:<cron>`.
+- Streamed results are collected before `onResult`.
+- Interval-triggered errors emit `heartbeat.failed` and do not crash the timer callback.
+
+Schedule events are `heartbeat.fired`, `heartbeat.completed`, and `heartbeat.failed`. Each contains the session ID; failed events also contain the error message as a string.
+
+Supply `scheduler` in `AgentConfig` to use another structural `XsafSchedulerDriver`. XSAF alpha does not provide distributed locks, persistence, backfill, or durable replay.
+
+## See also
+
+- [Sessions & Memory](/sessions-memory)
+- [API reference](/reference#events)
+- [Roadmap](/roadmap)

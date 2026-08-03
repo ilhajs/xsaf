@@ -1,0 +1,257 @@
+---
+title: Tools & Security
+description: Define tools, validate inputs, control approval and retries, and require an explicit execution boundary.
+sidebar:
+  order: 2
+---
+
+A tool combines a lowercase snake_case name, a description, a dual Standard Schema and JSON Schema input, and an execute function.
+
+```ts
+const agent = xsaf
+  .agent(config)
+  .sandbox(sandbox)
+  .tool({
+    name: "lookup_order",
+    description: "Look up an order by numeric ID",
+    input: lookupOrderSchema,
+    timeout: 5_000,
+    retries: 1,
+    approval: "auto",
+    async execute({ orderId }, context) {
+      return orders.get(orderId, { signal: context.signal });
+    },
+  });
+```
+
+Tool names must match `^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$`. Description cannot be blank. Retry count must be a nonnegative integer, and timeout must be a finite positive number of milliseconds.
+
+## Tool schemas
+
+Tool input must implement two vendor-neutral contracts from standardschema.dev:
+
+```ts
+import type { StandardJSONSchemaV1, StandardSchemaV1, XsafToolSchema } from "xsaf";
+
+type XsafToolSchema<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output> &
+  StandardJSONSchemaV1<Input, Output>;
+```
+
+Standard Schema validates unknown runtime arguments and infers the value received by `execute()`. Standard JSON Schema conversion publishes the same contract to xsAI models and MCP clients.
+
+### Required capabilities
+
+A compatible schema exposes both methods under `~standard`:
+
+```ts
+const schema = {
+  "~standard": {
+    version: 1,
+    vendor: "your-schema-library",
+    validate(value: unknown) {
+      // Return { value } or { issues }.
+    },
+    jsonSchema: {
+      input(options) {
+        // Return JSON Schema for model input.
+      },
+      output(options) {
+        // Return JSON Schema for validated output.
+      },
+    },
+  },
+};
+```
+
+XSAF requests the `draft-07` target during registration. Registration fails eagerly if validation, JSON Schema conversion, or draft-07 conversion is unavailable.
+
+A tool accepting `{ orderId: number }` should publish an object schema such as:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "orderId": { "type": "number" }
+  },
+  "required": ["orderId"],
+  "additionalProperties": false
+}
+```
+
+The validator must enforce the same meaning at runtime. JSON Schema advertisement alone is not a security boundary because model and MCP input is untrusted.
+
+Use a schema library only when the installed version implements both Standard Schema V1 and Standard JSON Schema V1. XSAF intentionally does not depend on a specific schema package.
+
+`agent.ask(prompt, schema)` accepts a `StandardSchemaV1` output validator. It does not require `XsafToolSchema` because XSAF does not publish that schema as a model-visible tool definition.
+
+## Execution order
+
+Every local, delegated, and MCP tool runs through the same sequence:
+
+1. Validate raw arguments.
+2. Resolve automatic, callback, or human approval.
+3. Emit `tool.called`.
+4. Apply timeout and caller cancellation.
+5. Execute through the selected sandbox.
+6. Emit `tool.failed` after a failed attempt.
+7. Retry only eligible execution failures.
+8. Call `onError` after terminal failure, or rethrow.
+
+Invalid input and denied approval are never retried. Timeouts, caller aborts, and missing-sandbox errors are also non-retryable. `retries: 1` means at most two total attempts.
+
+## Approvals and retries
+
+A tool's `approval` option can be automatic, a callback, or human-mediated.
+
+### Automatic approval
+
+Omitted approval and `approval: "auto"` execute after validation. Use this only for actions that are safe under the configured sandbox and permissions.
+
+### Policy callback
+
+```ts
+.tool({
+  // ...
+  approval(input, context) {
+    return context.sessionId.startsWith("trusted:") && input.amount < 100;
+  },
+})
+```
+
+The callback receives validated input and `{ tool, sessionId }`. Returning `false` denies execution without retrying it.
+
+### Human approval
+
+Register a privileged handler separately from ordinary event telemetry:
+
+```ts
+const builder = xsaf
+  .agent(config)
+  .approve(async (request) => {
+    return approvalService.decide(request);
+  })
+  .tool({
+    // ...
+    approval: "human",
+  });
+```
+
+General `approval.required` events include only the tool and session identifiers. They deliberately omit tool arguments. Only `.approve()` handlers receive the validated input. If no human handler approves the request, execution is denied. XSAF emits `approval.granted` after approval succeeds.
+
+MCP connections default to `trust: "untrusted"`. Tools discovered from an untrusted server use human approval unless the tool definition provides an explicit policy. Set `trust: "trusted"` only after evaluating the server and transport boundary.
+
+### Retry classification
+
+Eligible execution failures receive up to `retries + 1` attempts. XSAF does not retry:
+
+- validation failure
+- approval denial
+- timeout
+- an aborted execution signal
+- a missing explicit sandbox
+
+Each failed execution attempt emits `tool.failed`. `onError` runs only after attempts are exhausted and can return a safe fallback result.
+
+## Execution context
+
+```ts
+interface ToolExecutionContext {
+  sessionId: string;
+  signal?: AbortSignal;
+}
+```
+
+Timeout cancellation is cooperative. Tool code must pass `context.signal` to abort-aware APIs or inspect it itself. A function running in the local host process cannot be forcibly isolated or terminated by the local adapter.
+
+## Handle terminal errors
+
+```ts
+.tool({
+  // ...
+  retries: 2,
+  onError(error) {
+    return { available: false, reason: "Lookup unavailable" };
+  },
+})
+```
+
+`onError` can convert a terminal error into a successful model-visible result. Avoid returning raw internal errors or secrets.
+
+XSAF exports `ToolValidationError` (including validation issues), `ToolApprovalError`, `ToolTimeoutError`, and `ToolSandboxRequiredError` for callers that need classification.
+
+## Secret handling
+
+Do not put credentials, authorization headers, or raw tool arguments in general event handlers. Treat MCP payloads, channel metadata, memory, and tool inputs as untrusted. Approval handlers are a privileged boundary and should be registered as narrowly as possible.
+
+## Sandbox security
+
+Executable local, delegated, and MCP tools require an explicit sandbox. XSAF never falls back silently to host execution.
+
+### Register a sandbox
+
+```ts
+const builder = xsaf.agent(config).sandbox(productionSandbox).tool(tool);
+```
+
+A tool or delegate can instead set its own `sandbox`. A default sandbox is still required for MCP tools because their definitions come from the remote server.
+
+### Driver contract
+
+```ts
+interface XsafSandboxDriver {
+  name: string;
+  permissions?: SandboxPermissions;
+  run(
+    fn: (...args: unknown[]) => Promise<unknown>,
+    args: unknown[],
+    options?: { signal?: AbortSignal },
+  ): Promise<unknown>;
+  close?(): Promise<void>;
+}
+```
+
+Production isolation is supplied by an external AgentOS-compatible structural driver. XSAF alpha does not bundle an AgentOS implementation and does not claim that permission metadata alone is enforced.
+
+### Explicit local execution
+
+For tests and code you fully trust, opt out of isolation deliberately:
+
+```ts
+import local from "xsaf/sandbox/local";
+
+const builder = xsaf.agent(config).sandbox(local());
+```
+
+`local()` executes the function in the current JavaScript process. It provides **no filesystem, network, shell, memory, or process isolation**. A timeout only aborts the signal cooperatively; it cannot forcibly terminate arbitrary host code.
+
+<Aside type="danger" title="Do not mistake local execution for a sandbox">
+
+Use `xsaf/sandbox/local` only when host-process execution is acceptable. Register an isolation driver for untrusted code or privileged operations.
+
+</Aside>
+
+### Compatibility host adapter
+
+```ts
+import host from "xsaf/sandbox/host";
+
+const unsafe = host({ allowUnsafeHostExecution: true });
+```
+
+This compatibility adapter also runs in the host process and requires the literal acknowledgement. Its `fs`, `network`, and `shell` permission fields are descriptive and are not enforcement.
+
+### Secure defaults
+
+- Treat every external argument as untrusted, even after model generation.
+- Validate before approval so reviewers see a typed value.
+- Keep untrusted MCP connections on their default human-approval policy.
+- Pass `context.signal` to abort-aware APIs.
+- Avoid logging raw inputs or secrets in tool and event failures.
+- Close sandbox resources during agent shutdown.
+
+## Next steps
+
+- [Choose a sandbox](/tools#sandbox-security)
+- [MCP](/mcp)
+- [Events](/reference#events)

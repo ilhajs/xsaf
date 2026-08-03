@@ -1,0 +1,281 @@
+---
+title: API reference
+description: Published imports, public methods, structural contracts, and events in XSAF 0.1.0-alpha.0.
+sidebar:
+  order: 8
+---
+
+XSAF is ESM-only. Import core runtime symbols and contracts from `xsaf`; use published subpaths for bundled adapters.
+
+## Published imports
+
+| Import               | Main exports                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xsaf`               | `xsaf`, `XsafBuilder`, `XsafAgent`, `HonoBackbone`, `XsaiModelAdapter`, memory and scheduler implementations, `parseCron`, public contracts, tool errors |
+| `xsaf/channel/http`  | default `http`, `HttpChannel`                                                                                                                            |
+| `xsaf/channel/mock`  | default `mock`, `MockChannel`                                                                                                                            |
+| `xsaf/model/mock`    | default `mockModel`, `MockModelAdapter`                                                                                                                  |
+| `xsaf/mcp`           | default `mcp`                                                                                                                                            |
+| `xsaf/sandbox/local` | default `local`                                                                                                                                          |
+| `xsaf/sandbox/host`  | default `host`, `HostSandbox`                                                                                                                            |
+
+Source-internal imports such as `xsaf/core/agent` and `xsaf/memory/in-memory` are not public exports.
+
+## Builder API
+
+```ts
+xsaf.agent(config): XsafBuilder
+
+builder
+  .sandbox(driver)
+  .tool(config)
+  .delegate(agent, options?)
+  .mcp(driver)
+  .memory(driver)
+  .channel(driver)
+  .serve(config)
+  .schedule(config)
+  .on(type, handler)
+  .approve(handler)
+```
+
+Terminal and runtime methods:
+
+```ts
+builder.asAgent(name, description?): XsafAgent
+builder.start(): Promise<XsafAgent>
+builder.stop(): Promise<void>
+builder.invoke(prompt, sessionId?): Promise<InvokeResult>
+builder.run(prompt, sessionId?): Promise<InvokeResult>
+builder.ask(prompt, schema, sessionId?): Promise<Output>
+builder.fetch(request): Promise<Response>
+builder.app
+builder.channels
+```
+
+Runtime use through `builder` requires successful startup. `.asAgent()` returns a sealed agent for reuse and delegation.
+
+## Agent API
+
+```ts
+agent.start(): Promise<XsafAgent>
+agent.stop(): Promise<void>
+agent.invoke(prompt, sessionId?): Promise<InvokeResult>
+agent.ask(prompt, schema, sessionId?): Promise<Output>
+agent.prompt(name, args?): Promise<string>
+agent.fetch(request): Promise<Response>
+agent.app
+agent.channels
+agent.started
+```
+
+Prefer obtaining an agent from `.start()` or `.asAgent()` over constructing `XsafAgent` or `HonoBackbone` directly.
+
+## Configuration
+
+```ts
+interface ServeConfig {
+  transport: "http";
+  path?: string;
+  name?: string;
+  version?: string;
+  driver?: XsafServeDriver;
+}
+```
+
+Default MCP path is `/mcp`; default name is the agent name or `xsaf`; default version is `0.1.0-alpha.0`. The built-in transport only mounts a route.
+
+```ts
+interface ScheduleConfig {
+  cron: string;
+  prompt: string | (() => Promise<string>);
+  sessionId?: string;
+  delegate?: string;
+  onResult?: (result: AgentResult) => Promise<void>;
+  timezone?: string;
+  runImmediately?: boolean;
+}
+```
+
+## Public contracts
+
+XSAF drivers are narrow structural interfaces. Implement them without extending an XSAF base class.
+
+### Results
+
+```ts
+interface AgentResult {
+  text: string;
+  usage?: Readonly<Record<string, number>>;
+}
+
+interface AgentStreamResult {
+  textStream: AsyncIterable<string>;
+  completed: Promise<AgentResult>;
+}
+
+type InvokeResult = AgentResult | AgentStreamResult;
+```
+
+### Model adapter
+
+```ts
+interface XsafModelAdapter {
+  generate(request: ModelRequest): Promise<ModelResponse>;
+  stream?(request: ModelRequest): ModelStreamResponse | Promise<ModelStreamResponse>;
+  ask?<Output>(request: ModelRequest, schema: StandardSchemaV1<unknown, Output>): Promise<Output>;
+}
+```
+
+`ModelRequest` contains model, endpoint, API key, messages, model-visible tools, maximum steps, and reasoning effort.
+
+### Tool
+
+```ts
+interface ToolExecutionContext {
+  sessionId: string;
+  signal?: AbortSignal;
+}
+
+interface ToolConfig<Schema extends XsafToolSchema> {
+  name: string;
+  description: string;
+  input: Schema;
+  execute(
+    input: StandardSchemaV1.InferOutput<Schema>,
+    context: ToolExecutionContext,
+  ): unknown | Promise<unknown>;
+  approval?: "auto" | "human" | ApprovalFn;
+  retries?: number;
+  timeout?: number;
+  onError?: (error: unknown) => unknown | Promise<unknown>;
+  sandbox?: XsafSandboxDriver;
+}
+```
+
+See [Tools](/tools#tool-schemas) for the dual-schema requirement.
+
+### Memory
+
+```ts
+interface XsafMemoryDriver {
+  get(sessionId: string): Promise<Message[]>;
+  append(sessionId: string, message: Message): Promise<void>;
+  clear(sessionId: string): Promise<void>;
+  close?(): Promise<void>;
+}
+```
+
+### Channel
+
+```ts
+interface XsafChannelDriver {
+  name: string;
+  listen(context: ChannelContext): void | Promise<void>;
+  send(target: ChannelTarget, payload: ChannelPayload): Promise<void>;
+  close?(): Promise<void>;
+}
+
+type ChannelTarget = string | Readonly<Record<string, unknown>>;
+type ChannelPayload = string | AsyncIterable<string> | { text: string; meta?: unknown };
+```
+
+`ChannelContext` includes the shared Hono app, an inbound dispatch function, and a compatibility message registration hook.
+
+### Sandbox
+
+```ts
+interface XsafSandboxDriver {
+  name: string;
+  permissions?: SandboxPermissions;
+  run(
+    fn: (...args: unknown[]) => Promise<unknown>,
+    args: unknown[],
+    options?: { signal?: AbortSignal },
+  ): Promise<unknown>;
+  close?(): Promise<void>;
+}
+```
+
+### MCP
+
+```ts
+interface XsafMcpDriver {
+  name: string;
+  trust?: "trusted" | "untrusted";
+  connect(context: McpContext): Promise<McpConnection | void>;
+  close?(): Promise<void>;
+}
+```
+
+A connection can provide tools, `resources.get(uri)`, and `prompts.get(name, args)`.
+
+### Scheduler
+
+```ts
+interface XsafSchedulerDriver {
+  schedule(config: ScheduleConfig, run: () => Promise<void>): Promise<ScheduledTask>;
+}
+
+interface ScheduledTask {
+  close(): Promise<void>;
+}
+
+interface ParsedCron {
+  readonly fields: readonly Set<number>[];
+  matches(date: Date, timezone: string): boolean;
+}
+
+function parseCron(expression: string): ParsedCron;
+```
+
+Driver methods may close external resources, so start them only from lifecycle hooks. Keep optional runtime-specific imports out of core-facing contract modules and avoid leaking mutable registries through driver APIs.
+
+## Events
+
+Register typed handlers while configuring the builder:
+
+```ts
+builder.on("tool.failed", (event) => {
+  console.error(event.tool, event.sessionId);
+});
+```
+
+Handlers can be synchronous or asynchronous. Event failures are isolated so they cannot corrupt runtime state.
+
+| Event                 | Payload fields               |
+| --------------------- | ---------------------------- |
+| `tool.called`         | `tool`, `sessionId`          |
+| `tool.failed`         | `tool`, `sessionId`, `error` |
+| `delegate.started`    | `delegate`, `sessionId`      |
+| `delegate.completed`  | `delegate`, `sessionId`      |
+| `message.sent`        | `channel?`, `sessionId`      |
+| `approval.required`   | `tool`, `sessionId`          |
+| `approval.granted`    | `tool`, `sessionId`          |
+| `mcp.connected`       | `server`                     |
+| `heartbeat.fired`     | `sessionId`                  |
+| `heartbeat.completed` | `sessionId`                  |
+| `heartbeat.failed`    | `sessionId`, `error`         |
+| `sandbox.escalated`   | `sandbox`, `tool`            |
+| `sandbox.denied`      | `sandbox`, `tool`, `reason`  |
+
+`sandbox.escalated` and `sandbox.denied` are public event variants for sandbox integrations. The bundled local and host adapters do not emit them.
+
+```ts
+type EventType = XsafEvent["type"];
+type EventFor<Type extends EventType> = Extract<XsafEvent, { type: Type }>;
+type EventHandler<Type extends EventType> = (event: EventFor<Type>) => unknown | Promise<unknown>;
+```
+
+`approval.required` does not carry tool arguments. Register `.approve(handler)` for privileged approval decisions that require validated input. Failure events expose a string error message; classify and redact it before exporting telemetry. Never serialize raw authorization headers, API keys, MCP payloads, channel metadata, or memory content by default.
+
+A schedule emits `heartbeat.fired` before running. Success emits `heartbeat.completed`; failure emits `heartbeat.failed`. Overlapping ticks are skipped and do not emit a second `heartbeat.fired` for work that never starts.
+
+## See also
+
+- [Builder and lifecycle](/components)
+- [Tools & Security](/tools)
+- [MCP](/mcp)
+- [Delegation](/delegation)
+- [Scheduling](/scheduling)
+- [Roadmap](/roadmap)

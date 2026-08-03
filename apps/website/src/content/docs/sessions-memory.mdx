@@ -1,0 +1,188 @@
+---
+title: Sessions & Memory
+description: Understand session isolation, streaming completion, memory persistence, channels, and the fetch-native runtime.
+sidebar:
+  order: 3
+---
+
+Every `XsafAgent` owns a Hono application. XSAF mounts routes and exposes a web-standard fetch handler, but it never opens a network listener.
+
+## Fetch and channels
+
+### Built-in routes
+
+| Route          | Behavior                                                               |
+| -------------- | ---------------------------------------------------------------------- |
+| `GET /health`  | Returns `{ "ok": true }`; it is not a dependency health check.         |
+| `POST /invoke` | Accepts `{ prompt, sessionId? }` and returns a collected model result. |
+| `/mcp`         | Mounted only after `.serve({ transport: "http" })`.                    |
+| `/chat`        | Default route of `xsaf/channel/http` when that channel is registered.  |
+
+Blank prompts and malformed JSON sent to `/invoke` return `400`. The default HTTP session ID is `"http"`.
+
+### Deploy the fetch handler
+
+```ts
+const agent = await builder.start();
+
+export default {
+  fetch(request: Request) {
+    return agent.fetch(request);
+  },
+};
+```
+
+Node.js deployments need a server adapter that translates incoming requests to web-standard `Request` and `Response` objects. XSAF intentionally does not choose or start that listener.
+
+### Compose with Hono
+
+```ts
+const agent = builder.asAgent("http_agent");
+
+agent.app.get("/ready", (context) => {
+  return context.json({ ready: true });
+});
+
+await agent.start();
+```
+
+The same Hono app hosts user routes, channel routes, and MCP. A sealed `XsafAgent` exposes its app before startup, so mount custom middleware on it before `agent.start()` when route order matters. A builder exposes `.app` only after `builder.start()`. Hono's MCP host and Origin protections remain enabled for the MCP endpoint.
+
+### Channel contract
+
+```ts
+interface XsafChannelDriver {
+  name: string;
+  listen(context: ChannelContext): void | Promise<void>;
+  send(target: ChannelTarget, payload: ChannelPayload): Promise<void>;
+  close?(): Promise<void>;
+}
+```
+
+Inbound channel messages dispatch through the normal request path. The result is sent back through that channel and `message.sent` is emitted.
+
+### HTTP channel
+
+```ts
+import http from "xsaf/channel/http";
+
+const channel = http({ name: "web", path: "/chat" });
+const builder = xsaf.agent(config).channel(channel);
+```
+
+```http
+POST /chat
+Content-Type: application/json
+
+{"sessionId":"customer-1","text":"Hello"}
+```
+
+String and object results return JSON. Streaming results return Server-Sent Events with one `data` event per chunk. A missing session ID is generated with `crypto.randomUUID()`.
+
+The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `xsaf/channel/mock` for deterministic in-process tests; see [Testing](/testing).
+
+## Sessions and streaming
+
+Session IDs define both memory history and concurrency ordering. Direct invocation defaults to `"default"`; the built-in `/invoke` route defaults to `"http"`.
+
+### Session serialization
+
+```ts
+await Promise.all([agent.invoke("First", "customer-1"), agent.invoke("Second", "customer-1")]);
+```
+
+The second request waits for the first request's memory and model work to finish. Calls for different session IDs can run concurrently. `ask()` participates in the same session locking.
+
+### Consume a stream
+
+```ts
+const result = await agent.invoke("Write a summary", "customer-1");
+
+if ("textStream" in result) {
+  for await (const chunk of result.textStream) {
+    process.stdout.write(chunk);
+  }
+
+  const completed = await result.completed;
+  console.log(completed.usage);
+} else {
+  console.log(result.text);
+}
+```
+
+```ts
+interface AgentStreamResult {
+  textStream: AsyncIterable<string>;
+  completed: Promise<AgentResult>;
+}
+```
+
+XSAF wraps rather than eagerly buffers the provider iterable, preserving backpressure. It collects the final text while the consumer advances the stream, then persists the assistant message and resolves `completed`.
+
+<Aside type="caution" title="Always finish a stream">
+
+A same-session request remains locked until `completed` settles. If a caller abandons `textStream` without consuming or closing it, that session can remain blocked. Alpha does not provide a separate public stream-cancel method.
+
+</Aside>
+
+`POST /invoke` consumes the model stream internally and returns a single JSON response. The bundled HTTP channel returns an `AsyncIterable` as Server-Sent Events, so clients receive chunks as they are consumed.
+
+Tool calls receive a combined timeout and caller signal through `ToolExecutionContext.signal`. Cancellation is cooperative: adapters and tool code must observe the signal. Timed-out executions are not retried, but host-process code that ignores its signal can continue running.
+
+## Memory
+
+XSAF stores inbound user messages and completed assistant responses through one memory driver. The default is process-local `InMemoryMemory`.
+
+### Use the default
+
+No configuration is required. For an explicit instance:
+
+```ts
+import { InMemoryMemory, inMemory } from "xsaf";
+
+const memory = inMemory();
+const another = new InMemoryMemory();
+```
+
+The in-memory driver is non-durable. `get()` returns a new array, but message objects are not deep-cloned.
+
+### Supply a driver
+
+```ts
+interface XsafMemoryDriver {
+  get(sessionId: string): Promise<Message[]>;
+  append(sessionId: string, message: Message): Promise<void>;
+  clear(sessionId: string): Promise<void>;
+  close?(): Promise<void>;
+}
+```
+
+```ts
+const builder = xsaf.agent(config).memory(durableMemory);
+```
+
+Only one memory driver can be configured. XSAF treats memory failures as request failures rather than silently continuing with incomplete context.
+
+```ts
+interface Message {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  name?: string;
+  toolCallId?: string;
+  meta?: Readonly<Record<string, unknown>>;
+}
+```
+
+The agent persona is inserted as a system message in each model request and is not persisted in memory. Channel metadata and stored content are untrusted data; a durable driver should apply its own storage security and retention policy.
+
+For non-streaming requests, XSAF persists the assistant response before invocation resolves. For streaming requests, persistence occurs after successful stream consumption. Memory append failures reject `completed` and keep the request failure visible.
+
+The package does not include SQLite or another durable memory adapter in alpha. Durable drivers remain structural integrations and must implement the contract above.
+
+## See also
+
+- [Builder and lifecycle](/components)
+- [Testing](/testing)
+- [MCP](/mcp)
+- [Public driver contracts](/reference#public-contracts)
+- [Roadmap](/roadmap)
