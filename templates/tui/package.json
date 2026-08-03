@@ -2,13 +2,16 @@
   "name": "@xsaf/template-tui",
   "private": true,
   "type": "module",
-  "module": "agent.ts",
   "scripts": {
-    "start": "bun agent.ts"
+    "build": "tsdown",
+    "start": "node dist/agent.mjs"
   },
   "dependencies": {
     "@xsaf/tui": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/tui@main",
     "srvx": "^0.12.5",
     "xsaf": "https://pkg.pr.new/ilhajs/xsaf@main"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.14"
   }
 }

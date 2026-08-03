@@ -4,11 +4,12 @@ A minimal interactive terminal agent built with XSAF, `@xsaf/tui`, and srvx.
 
 ## Run
 
-From the repository root:
+From `templates/tui`:
 
 ```sh
-bun install
-bun run --cwd templates/tui start
+npm install
+npm run build
+npm start
 ```
 
 `@xsaf/tui` owns the prompt, Markdown history, streaming output, and tool/delegate statuses. Type a prompt in the bordered multiline editor and press Enter to submit. Use Shift+Enter for a new line. Submitted prompts are kept in editor history. User and agent messages render as themed Markdown, including lists, links, quotes, and code blocks, with an animated working indicator while the agent responds. The same XSAF agent remains available through an srvx HTTP server.
@@ -23,5 +24,5 @@ The default model is deterministic and makes no network or AI-provider requests.
 Set a different port with:
 
 ```sh
-PORT=4000 bun run --cwd templates/tui start
+PORT=4000 npm start
 ```

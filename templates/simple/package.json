@@ -2,9 +2,15 @@
   "name": "@xsaf/template-simple",
   "private": true,
   "type": "module",
-  "module": "agent.ts",
+  "scripts": {
+    "build": "tsdown",
+    "start": "node dist/agent.mjs"
+  },
   "dependencies": {
     "srvx": "^0.12.5",
     "xsaf": "https://pkg.pr.new/ilhajs/xsaf@main"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.14"
   }
 }
