@@ -16,6 +16,63 @@ The memory driver stores ordered model messages by session ID.
 
 ## Usage
 
+### Durable SQL with db0
+
+Install `db0` (optional peer of `@xsaf/agent`) and wrap any db0 `Database`. Rows live in `xsaf_messages` and support substring search via `.search()` (all sessions by default; pass `sessionId` to narrow):
+
+```ts
+import { createDatabase } from "db0";
+import sqlite from "db0/connectors/bun-sqlite";
+import { db0 } from "@xsaf/agent/memory/db0";
+
+const memory = db0(createDatabase(sqlite({ name: "xsaf-memory" })));
+
+agent.memory(memory);
+
+const hits = await memory.search({ query: "weather", limit: 10 });
+const scoped = await memory.search({ query: "weather", sessionId: "customer-1" });
+```
+
+On Nitro, enable the experimental database layer and reuse `useDatabase()` (default SQLite under `.data/`):
+
+```ts
+// nitro.config.ts
+export default defineConfig({
+  experimental: { database: true },
+  database: {
+    default: { connector: "sqlite", options: { name: "xsaf" } },
+  },
+});
+
+// server.ts
+import { useDatabase } from "nitro/database";
+import { db0 } from "@xsaf/agent/memory/db0";
+
+agent.memory(db0(useDatabase(), { dispose: false }));
+```
+
+Pass `{ dispose: false }` when Nitro (or another owner) still needs the database after agent shutdown.
+
+### Durable KV with unstorage
+
+Install `unstorage` and wrap any Storage backend — filesystem, Redis, Cloudflare, and more:
+
+```ts
+import { createStorage } from "unstorage";
+import fsDriver from "unstorage/drivers/fs";
+import { unstorage } from "@xsaf/agent/memory/unstorage";
+
+agent.memory(
+  unstorage(
+    createStorage({
+      driver: fsDriver({ base: "./data/memory" }),
+    }),
+  ),
+);
+```
+
+### Custom driver
+
 ```ts
 agent.memory({
   async get(sessionId) {

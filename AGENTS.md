@@ -27,7 +27,7 @@ packages/
       core/                # fluent agent, internal runtime, lifecycle
       drivers/             # public structural contracts
       events/              # typed event bus
-      memory/              # in-memory default
+      memory/              # in-memory default + unstorage/db0 adapters (peerDeps)
       scheduler/           # single-process scheduling
       channel/             # bundled channel adapters
       mcp/                 # MCP host/client adapter
@@ -35,7 +35,6 @@ packages/
       serve/               # MCP server exposure
       index.ts             # minimal root export
     test/
-  xsaf-memory-sqlite/      # optional durable memory
 ```
 
 Create directories only when needed; do not add placeholders that imply unsupported behavior.

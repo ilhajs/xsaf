@@ -9,6 +9,8 @@ export default defineConfig({
     "model/mock": "src/model/mock.ts",
     "model/xsai": "src/model/xsai.ts",
     "memory/in-memory": "src/memory/in-memory.ts",
+    "memory/db0": "src/memory/db0.ts",
+    "memory/unstorage": "src/memory/unstorage.ts",
     "scheduler/cron": "src/scheduler/cron.ts",
     "sandbox/local": "src/sandbox/local.ts",
     "mcp/index": "src/mcp/index.ts",

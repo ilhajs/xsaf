@@ -1,8 +1,10 @@
 import { xsaf } from "@xsaf/agent";
 import http from "@xsaf/agent/channel/http";
+import { db0 } from "@xsaf/agent/memory/db0";
 import xsai from "@xsaf/agent/model/xsai";
 import local from "@xsaf/agent/sandbox/local";
 import { defineHandler } from "nitro";
+import { useDatabase } from "nitro/database";
 import { useRuntimeConfig } from "nitro/runtime-config";
 import { z } from "zod";
 import { Actions, Button, Card, CardText, Chat } from "chat";
@@ -51,6 +53,8 @@ type ApprovalRecord = {
 };
 
 const approvals = useStorage<ApprovalRecord>("approvals");
+/** Durable session history via Nitro's SQLite database (`.data/xsaf.sqlite`). */
+const memory = db0(useDatabase(), { dispose: false });
 
 bot.onAction([APPROVE, DENY], async (event) => {
   const id = event.value;
@@ -142,11 +146,32 @@ const agent = xsaf
     name: "xsaf",
     description: "An interactive example agent with a tool and a delegate.",
     model,
-    persona: "Be concise. Use get_weather for weather data and delegate clothing advice.",
+    persona:
+      "Be concise. Use get_weather for weather data, search_memory for past messages, and delegate clothing advice.",
     stream: true,
   })
   .approve(approve)
   .sandbox(local())
+  .memory(memory)
+  .tool({
+    name: "search_memory",
+    description:
+      "Search persisted messages by content substring across all sessions. Pass sessionId to narrow to one session.",
+    input: z.object({
+      query: z.string().min(1),
+      sessionId: z.string().optional(),
+      limit: z.number().int().positive().max(100).optional(),
+    }),
+    async execute({ query, sessionId, limit }) {
+      const hits = await memory.search({ query, sessionId, limit });
+      return hits.map((hit) => ({
+        sessionId: hit.sessionId,
+        seq: hit.seq,
+        role: hit.message.role,
+        content: hit.message.content,
+      }));
+    },
+  })
   .delegate(weatherAdvisor)
   .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
   .channel(chatSdk(bot))

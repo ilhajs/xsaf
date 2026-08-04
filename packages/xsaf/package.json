@@ -52,6 +52,14 @@
       "types": "./dist/memory/in-memory.d.mts",
       "import": "./dist/memory/in-memory.mjs"
     },
+    "./memory/db0": {
+      "types": "./dist/memory/db0.d.mts",
+      "import": "./dist/memory/db0.mjs"
+    },
+    "./memory/unstorage": {
+      "types": "./dist/memory/unstorage.d.mts",
+      "import": "./dist/memory/unstorage.mjs"
+    },
     "./scheduler/cron": {
       "types": "./dist/scheduler/cron.d.mts",
       "import": "./dist/scheduler/cron.mjs"
@@ -86,13 +94,23 @@
     "@orpc/client": "^1.14.13",
     "@types/bun": "latest",
     "chat": "^4.36.0",
-    "typescript": "^7"
+    "db0": "^0.3.4",
+    "typescript": "^7",
+    "unstorage": "^1.17.5"
   },
   "peerDependencies": {
-    "chat": ">=4"
+    "chat": ">=4",
+    "db0": "^0.3.0",
+    "unstorage": "^1"
   },
   "peerDependenciesMeta": {
     "chat": {
+      "optional": true
+    },
+    "db0": {
+      "optional": true
+    },
+    "unstorage": {
       "optional": true
     }
   },

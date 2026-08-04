@@ -82,7 +82,12 @@ Other custom channels are post-alpha adapters.
 
 ## Memory and concurrency
 
-The default memory driver is in-memory. Drivers may provide durable storage. Requests sharing a `sessionId` are serialized; different sessions may run concurrently. Memory failures fail the request.
+The default memory driver is in-memory. Drivers may provide durable storage. Optional adapters:
+
+- `@xsaf/agent/memory/db0` wraps a [db0](https://db0.unjs.io/) `Database` (SQL rows + `.search()`).
+- `@xsaf/agent/memory/unstorage` wraps an [unstorage](https://unstorage.unjs.io/) `Storage` (KV backends).
+
+Requests sharing a `sessionId` are serialized; different sessions may run concurrently. Memory failures fail the request.
 
 ## Delegation
 
@@ -106,4 +111,4 @@ Startup is coalesced and cleans partially initialized resources on failure. Shut
 
 ## Post-alpha
 
-AgentOS implementation packages, SQLite memory, socket listeners, stdio MCP, distributed scheduling, workflow durability, multi-tenant auth, rate limiting, CLI scaffolding, and dashboards are outside alpha scope.
+AgentOS implementation packages, socket listeners, stdio MCP, distributed scheduling, workflow durability, multi-tenant auth, rate limiting, CLI scaffolding, and dashboards are outside alpha scope.

@@ -168,6 +168,42 @@ const memory = inMemory();
 
 The in-memory driver is non-durable. `get()` returns a new array, but message objects are not deep-cloned.
 
+### Use db0 (durable SQL)
+
+```ts
+import { createDatabase } from "db0";
+import sqlite from "db0/connectors/bun-sqlite";
+import { db0 } from "@xsaf/agent/memory/db0";
+
+const memory = db0(createDatabase(sqlite({ name: "xsaf-memory" })));
+const agent = xsaf.agent(config).memory(memory);
+
+const hits = await memory.search({ query: "weather", limit: 10 });
+const scoped = await memory.search({ query: "weather", sessionId: "customer-1" });
+```
+
+`db0` is an optional peer dependency. Messages are stored as rows in `xsaf_messages` (`session_id`, `seq`, `role`, `content`, …). `.search()` runs a parameterized `LIKE` query across all sessions unless `sessionId` is set; corrupt or invalid rows fail the request. Call `db0(database, { dispose: false })` when another owner still needs the Database after agent shutdown.
+
+On Nitro, enable `experimental.database` and pass `useDatabase()` into `db0(...)`.
+
+### Use unstorage (durable KV)
+
+```ts
+import { createStorage } from "unstorage";
+import fsDriver from "unstorage/drivers/fs";
+import { unstorage } from "@xsaf/agent/memory/unstorage";
+
+const memory = unstorage(
+  createStorage({
+    driver: fsDriver({ base: "./data/memory" }),
+  }),
+);
+
+const agent = xsaf.agent(config).memory(memory);
+```
+
+`unstorage` is an optional peer dependency. Session history is stored as a JSON `Message[]` under `xsaf:session:<encodedSessionId>`. Loaded payloads are validated; corrupt data fails the request. Call `unstorage(storage, { dispose: false })` when another owner still needs the Storage after agent shutdown.
+
 ### Supply a driver
 
 ```ts
@@ -199,7 +235,7 @@ The agent persona is inserted as a system message in each model request and is n
 
 For non-streaming requests, XSAF persists the assistant response before invocation resolves. For streaming requests, persistence occurs after successful stream consumption. Memory append failures reject `completed` and keep the request failure visible.
 
-The package does not include SQLite or another durable memory adapter in alpha. Durable drivers remain structural integrations and must implement the contract above.
+Alpha ships `@xsaf/agent/memory/db0` for SQL backends via [db0](https://db0.unjs.io/) (searchable) and `@xsaf/agent/memory/unstorage` for KV backends via [unstorage](https://unstorage.unjs.io/). Custom drivers remain structural integrations and must implement the contract above.
 
 ## See also
 

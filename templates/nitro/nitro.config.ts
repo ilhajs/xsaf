@@ -1,6 +1,15 @@
 import { defineConfig } from "nitro";
 
 export default defineConfig({
+  experimental: {
+    database: true,
+  },
+  database: {
+    default: {
+      connector: "sqlite",
+      options: { name: "xsaf" },
+    },
+  },
   runtimeConfig: {
     xsafAiModel: "",
     xsafAiApiKey: "",
