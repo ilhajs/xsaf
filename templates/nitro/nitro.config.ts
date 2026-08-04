@@ -4,8 +4,11 @@ export default defineConfig({
   runtimeConfig: {
     xsafAiModel: "",
     xsafAiApiKey: "",
-    xsafAiBaseUrl: "",
+    xsafAiBaseUrl: "https://openrouter.ai/api/v1",
     xsafChatKey: "",
     xsafMcpHost: "",
+    telegramBotToken: "",
+    telegramWebhookSecretToken: "",
+    telegramBotUsername: "xsaf",
   },
 });

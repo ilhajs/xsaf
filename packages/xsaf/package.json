@@ -28,6 +28,10 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
+    "./channel/chat-sdk": {
+      "types": "./dist/channel/chat-sdk.d.mts",
+      "import": "./dist/channel/chat-sdk.mjs"
+    },
     "./channel/http": {
       "types": "./dist/channel/http.d.mts",
       "import": "./dist/channel/http.mjs"

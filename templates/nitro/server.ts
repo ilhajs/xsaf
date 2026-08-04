@@ -5,6 +5,10 @@ import local from "@xsaf/agent/sandbox/local";
 import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 import { z } from "zod";
+import { Chat } from "chat";
+import { createTelegramAdapter } from "@chat-adapter/telegram";
+import { createRedisState } from "@chat-adapter/state-redis";
+import chatSdk from "@xsaf/agent/channel/chat-sdk";
 
 const env = z
   .object({
@@ -20,6 +24,14 @@ const model = xsai({
   model: env.xsafAiModel,
   apiKey: env.xsafAiApiKey,
   baseURL: env.xsafAiBaseUrl,
+});
+
+const bot = new Chat({
+  userName: "xsaf",
+  adapters: {
+    telegram: createTelegramAdapter(),
+  },
+  state: createRedisState(),
 });
 
 const weatherAdvisor = xsaf
@@ -41,7 +53,7 @@ const weatherAdvisor = xsaf
     },
   });
 
-export const agent = xsaf
+const agent = xsaf
   .agent({
     name: "xsaf",
     description: "An interactive example agent with a tool and a delegate.",
@@ -52,7 +64,10 @@ export const agent = xsaf
   .sandbox(local())
   .delegate(weatherAdvisor)
   .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
+  .channel(chatSdk(bot))
   .serve({ path: "/mcp", host: env.xsafMcpHost });
+
+agent.app.post("/webhooks/telegram", (c) => bot.webhooks.telegram(c.req.raw));
 
 await agent.start();
 

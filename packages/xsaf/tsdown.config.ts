@@ -3,6 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    "channel/chat-sdk": "src/channel/chat-sdk.ts",
     "channel/http": "src/channel/http.ts",
     "channel/mock": "src/channel/mock.ts",
     "model/mock": "src/model/mock.ts",
