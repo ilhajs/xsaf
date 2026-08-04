@@ -1,11 +1,11 @@
 /**
  * chat-sdk channel adapter for XSAF.
  *
- * Bridges any chat-sdk adapter (Slack, Teams, Discord, etc.) into the XSAF
- * agent runtime. Users create and configure the `Chat` instance themselves
- * (including adapters, state, and webhook routing), then pass it to this
- * driver. The driver registers inbound message handlers on the `Chat` bot and
- * posts outgoing payloads back through `bot.thread(target).post(...)`.
+ * Bridges any chat-sdk adapter (Slack, Teams, Discord, Google Chat, etc.) into
+ * the XSAF agent runtime. Users create and configure the `Chat` instance
+ * themselves — including adapters, state, and webhook routing — then pass it
+ * to this driver. The driver registers inbound message handlers on the `Chat`
+ * bot and posts outgoing payloads back through `bot.thread(target).post(...)`.
  *
  * `chat` is a **peer dependency** — install it alongside this package:
  *   bun add chat
@@ -16,31 +16,8 @@
  * @module
  */
 
+import type { Chat, Channel, Message, Thread } from "chat";
 import type { ChannelContext, ChannelPayload, ChannelTarget, XsafChannelDriver } from "../types";
-
-// ── Structural peer-dependency types ────────────────────────────────────────
-// We vendor only the minimal structural shapes from `chat` so the core bundle
-// has no hard dependency on the package. Users must install `chat` themselves.
-
-/** Minimal Thread shape required by this driver. */
-interface ChatThread {
-  readonly id: string;
-  post(text: string): Promise<unknown>;
-}
-
-/** Minimal Message shape provided by chat-sdk event handlers. */
-interface ChatMessage {
-  readonly text: string;
-  readonly author?: { readonly isBot?: boolean };
-}
-
-/** Minimal Chat bot interface required by this driver. */
-interface ChatBot {
-  thread(id: string): ChatThread;
-  onNewMention(handler: (thread: ChatThread, message: ChatMessage) => Promise<void>): void;
-  onDirectMessage(handler: (thread: ChatThread, message: ChatMessage) => Promise<void>): void;
-  onSubscribedMessage(handler: (thread: ChatThread, message: ChatMessage) => Promise<void>): void;
-}
 
 // ── Options ──────────────────────────────────────────────────────────────────
 
@@ -54,20 +31,20 @@ export interface ChatSdkChannelOptions {
    * Which inbound event types to listen for.
    * Defaults to all three: `["mention", "direct", "subscribed"]`.
    *
-   * - `"mention"` — messages where the bot is @-mentioned (new threads or replies)
+   * - `"mention"` — messages where the bot is @-mentioned in an unsubscribed thread
    * - `"direct"` — direct messages sent to the bot
    * - `"subscribed"` — messages in threads the bot has subscribed to
    */
   readonly listen?: ReadonlyArray<"mention" | "direct" | "subscribed">;
 
   /**
-   * Derive the XSAF session ID from a chat-sdk thread.
+   * Derive the XSAF session ID from an inbound thread and message.
    *
-   * Defaults to using the thread's full ID (`thread.id`), which scopes each
-   * platform thread to its own agent memory. Override to coalesce threads or
-   * map to user-level sessions.
+   * Defaults to `thread.id`, which scopes each platform thread to its own
+   * agent memory. Override to coalesce threads or map to user-level sessions.
    */
-  readonly sessionId?: (thread: ChatThread, message: ChatMessage) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly sessionId?: (thread: Thread<any>, message: Message) => string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,19 +70,26 @@ async function collectIterable(iter: AsyncIterable<string>): Promise<string> {
  * dispatches each incoming message into the XSAF request path. Outbound
  * payloads are posted back to the originating platform thread.
  *
- * The `send()` target must be a thread ID string (as provided by chat-sdk's
- * `thread.id`). Streaming `AsyncIterable<string>` payloads are fully collected
- * before posting because chat-sdk's `thread.post` accepts a plain string;
- * platforms with native streaming support are not yet bridged.
+ * The `send()` target must be a thread ID string (e.g. `"slack:C123:1234.567"`
+ * as provided by chat-sdk's `thread.id`). Streaming `AsyncIterable<string>`
+ * payloads are collected before posting because `thread.post()` accepts a
+ * plain string or a `PostableMessage` — not a raw async iterable of chunks.
+ *
+ * chat-sdk already filters `isMe: true` messages before handlers run, so
+ * bot self-replies do not loop back into XSAF.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class ChatSdkChannel implements XsafChannelDriver {
   readonly name: string;
-  readonly #bot: ChatBot;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly #bot: Chat<any, any>;
   readonly #listenFor: ReadonlySet<"mention" | "direct" | "subscribed">;
-  readonly #sessionId: (thread: ChatThread, message: ChatMessage) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly #sessionId: (thread: Thread<any>, message: Message) => string;
   #closed = false;
 
-  constructor(bot: ChatBot, options: ChatSdkChannelOptions = {}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(bot: Chat<any, any>, options: ChatSdkChannelOptions = {}) {
     this.name = options.name ?? "chat-sdk";
     this.#bot = bot;
     this.#listenFor = new Set(options.listen ?? ["mention", "direct", "subscribed"]);
@@ -115,11 +99,11 @@ class ChatSdkChannel implements XsafChannelDriver {
   listen(context: ChannelContext): void {
     if (this.#closed) throw new Error("ChatSdkChannel is closed");
 
-    const dispatch = async (thread: ChatThread, message: ChatMessage): Promise<void> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dispatch = async (thread: Thread<any>, message: Message): Promise<void> => {
       if (this.#closed) return;
       const text = message.text?.trim();
-      // Skip empty messages or bot-authored messages to prevent feedback loops.
-      if (!text || message.author?.isBot) return;
+      if (!text) return;
       const sessionId = this.#sessionId(thread, message);
       await context.dispatch({ sessionId, text, meta: { threadId: thread.id } });
     };
@@ -128,7 +112,13 @@ class ChatSdkChannel implements XsafChannelDriver {
       this.#bot.onNewMention(dispatch);
     }
     if (this.#listenFor.has("direct")) {
-      this.#bot.onDirectMessage(dispatch);
+      // onDirectMessage passes (thread, message, channel) — channel is unused here
+      this.#bot.onDirectMessage(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async (thread: Thread<any>, message: Message, _channel: Channel) => {
+          await dispatch(thread, message);
+        },
+      );
     }
     if (this.#listenFor.has("subscribed")) {
       this.#bot.onSubscribedMessage(dispatch);
@@ -146,7 +136,7 @@ class ChatSdkChannel implements XsafChannelDriver {
     const resolved = resolveText(payload);
     const text = typeof resolved === "string" ? resolved : await collectIterable(resolved);
 
-    if (!text) return; // nothing to post
+    if (!text) return;
     await this.#bot.thread(target).post(text);
   }
 
@@ -185,6 +175,10 @@ class ChatSdkChannel implements XsafChannelDriver {
  *   .start();
  * ```
  */
-export default function chatSdk(bot: ChatBot, options?: ChatSdkChannelOptions): ChatSdkChannel {
+export default function chatSdk(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bot: Chat<any, any>,
+  options?: ChatSdkChannelOptions,
+): ChatSdkChannel {
   return new ChatSdkChannel(bot, options);
 }

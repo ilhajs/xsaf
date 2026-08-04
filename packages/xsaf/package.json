@@ -85,7 +85,16 @@
   "devDependencies": {
     "@orpc/client": "^1.14.13",
     "@types/bun": "latest",
+    "chat": "^4.36.0",
     "typescript": "^7"
+  },
+  "peerDependencies": {
+    "chat": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "chat": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=20"
