@@ -72,23 +72,30 @@ bot.onAction([APPROVE_ACTION_ID, DENY_ACTION_ID], async (event) => {
   }
 });
 
+/** Delegate runs use `${parentSession}:delegate:${name}` — strip for platform thread IDs. */
+function platformThreadId(sessionId: string): string {
+  const idx = sessionId.indexOf(":delegate:");
+  return idx === -1 ? sessionId : sessionId.slice(0, idx);
+}
+
 const handleApproval = async (
   input: unknown,
   context: { readonly tool: string; readonly sessionId: string },
 ) => {
-  const thread = bot.thread(context.sessionId);
+  // get_weather lives on weather_advisor; its sessionId is mangled for memory isolation
+  // and is not a valid Telegram thread ID (`telegram:{chatId}:delegate:...` → 4+ parts).
+  const thread = bot.thread(platformThreadId(context.sessionId));
   const options: ApprovalCardOptions = {
     title: `Approve ${context.tool}?`,
     fields: { Input: JSON.stringify(input) },
   };
 
   const message = await thread.post(
-    // We pass undefined as the webhookUrl so it triggers an onAction event instead
+    // undefined webhookUrl → Telegram callback_data → bot.onAction (not Workflow webhook)
     buildApprovalCard(options, undefined as any),
   );
 
   return new Promise<boolean>((resolve) => {
-    console.log("Setting pending approval for", message.id);
     pendingApprovals.set(message.id, { resolve, options });
   });
 };
