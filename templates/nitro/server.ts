@@ -43,16 +43,45 @@ const bot = new Chat({
   state: createMemoryState(),
 }).registerSingleton();
 
+function approvalLog(stage: string, detail?: Record<string, unknown>) {
+  console.log("[xsaf:approval]", stage, detail ?? "");
+}
+
 /** Chat SDK + Workflow durable approval (see https://chat-sdk.dev/docs/approvals). */
 async function approve(
   input: unknown,
   context: { readonly tool: string; readonly sessionId: string },
 ): Promise<boolean> {
   // Strip `:delegate:…` — chat-sdk thread IDs reject the mangled memory session.
-  const thread = bot.thread(context.sessionId.replace(/:delegate:.*$/, ""));
-  const run = await start(requestToolApproval, [{ thread, tool: context.tool, input }]);
-  const result = await run.returnValue;
-  return result.approved;
+  const sessionId = context.sessionId.replace(/:delegate:.*$/, "");
+  approvalLog("handler:enter", {
+    tool: context.tool,
+    rawSessionId: context.sessionId,
+    threadSessionId: sessionId,
+    workflowId: (requestToolApproval as { workflowId?: string }).workflowId,
+  });
+
+  try {
+    const thread = bot.thread(sessionId);
+    approvalLog("handler:thread", { threadId: thread.id });
+
+    const run = await start(requestToolApproval, [{ thread, tool: context.tool, input }]);
+    approvalLog("handler:started", { runId: run.runId });
+
+    const result = await run.returnValue;
+    approvalLog("handler:returnValue", {
+      approved: result?.approved,
+      result,
+    });
+    return result.approved;
+  } catch (error) {
+    approvalLog("handler:error", {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
+  }
 }
 
 const weatherAdvisor = xsaf
