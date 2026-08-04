@@ -16,7 +16,7 @@ import type {
   XsafSchedulerDriver,
 } from "../types";
 import { AgentRuntime } from "./agent";
-/** The single fluent configuration and runtime object returned by xsaf.agent(). */
+/** The single fluent configuration and runtime object returned by `agent()`. */
 export declare class XsafAgent {
   #private;
   constructor(config: AgentConfig);
@@ -47,6 +47,5 @@ export declare class XsafAgent {
   fetch(request: Request): Promise<Response>;
   get channels(): ReadonlyMap<string, XsafChannelDriver>;
 }
-export declare const xsaf: {
-  agent(config: AgentConfig): XsafAgent;
-};
+/** Create a fluent agent. Methods configure only; I/O and timers begin at `.start()`. */
+export declare function agent(config: AgentConfig): XsafAgent;

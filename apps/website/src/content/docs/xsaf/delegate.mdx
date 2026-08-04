@@ -15,13 +15,13 @@ agent.delegate(agent: XsafAgent, options?: DelegateOptions): XsafAgent
 ## Seal and register a child
 
 ```ts
-const researcher = xsaf.agent({
+const researcher = agent({
   ...researchConfig,
   name: "researcher",
   description: "Research one focused question",
 });
 
-const parent = xsaf.agent(parentConfig).sandbox(sandbox).delegate(researcher, {
+const parent = agent(parentConfig).sandbox(sandbox).delegate(researcher, {
   passContext: false,
   approval: "human",
 });

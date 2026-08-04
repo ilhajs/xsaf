@@ -23,11 +23,11 @@ Blank prompts and malformed JSON sent to `/invoke` return `400`. The default HTT
 ### Deploy the fetch handler
 
 ```ts
-await agent.start();
+await bot.start();
 
 export default {
   fetch(request: Request) {
-    return agent.fetch(request);
+    return bot.fetch(request);
   },
 };
 ```
@@ -37,14 +37,14 @@ Node.js deployments need a server adapter that translates incoming requests to w
 ### Compose with Hono
 
 ```ts
-agent.app.get("/ready", (context) => {
+bot.app.get("/ready", (context) => {
   return context.json({ ready: true });
 });
 
-await agent.start();
+await bot.start();
 ```
 
-The same Hono app hosts user routes, channel routes, and MCP. Mount custom middleware after `agent.start()` and before accepting requests when route order matters. Hono's MCP host and Origin protections remain enabled for the MCP endpoint.
+The same Hono app hosts user routes, channel routes, and MCP. Mount custom middleware after `bot.start()` and before accepting requests when route order matters. Hono's MCP host and Origin protections remain enabled for the MCP endpoint.
 
 ### Channel contract
 
@@ -62,10 +62,11 @@ Inbound channel messages dispatch through the normal request path. The result is
 ### HTTP channel
 
 ```ts
+import { agent } from "@xsaf/agent";
 import http from "@xsaf/agent/channel/http";
 
 const channel = http({ name: "web", path: "/chat", apiKey: process.env.API_KEY });
-const agent = xsaf.agent(config).channel(channel);
+const bot = agent(config).channel(channel);
 ```
 
 ```http
@@ -88,6 +89,7 @@ The Chat SDK channel bridges the universal `chat` package to natively support Sl
 ```ts
 import { Chat } from "chat";
 import { createSlackAdapter } from "@chat-adapter/slack";
+import { agent } from "@xsaf/agent";
 import chatSdk from "@xsaf/agent/channel/chat-sdk";
 
 const bot = new Chat({
@@ -99,7 +101,7 @@ const bot = new Chat({
 // Wire webhooks to your HTTP framework separately:
 // app.post("/webhooks/slack", bot.webhooks.slack);
 
-const agent = xsaf.agent(config).channel(chatSdk(bot));
+const assistant = agent(config).channel(chatSdk(bot));
 ```
 
 The driver registers inbound handlers on `bot` at `listen()` time and dispatches each incoming message into the XSAF request path. Outbound payloads are posted back to the originating platform thread.
@@ -111,7 +113,7 @@ Session IDs define both memory history and concurrency ordering. Direct invocati
 ### Session serialization
 
 ```ts
-await Promise.all([agent.invoke("First", "customer-1"), agent.invoke("Second", "customer-1")]);
+await Promise.all([bot.invoke("First", "customer-1"), bot.invoke("Second", "customer-1")]);
 ```
 
 The second request waits for the first request's memory and model work to finish. Calls for different session IDs can run concurrently. `ask()` participates in the same session locking.
@@ -119,7 +121,7 @@ The second request waits for the first request's memory and model work to finish
 ### Consume a stream
 
 ```ts
-const result = await agent.invoke("Write a summary", "customer-1");
+const result = await bot.invoke("Write a summary", "customer-1");
 
 if ("textStream" in result) {
   for await (const chunk of result.textStream) {
@@ -176,7 +178,7 @@ import sqlite from "db0/connectors/bun-sqlite";
 import { db0 } from "@xsaf/agent/memory/db0";
 
 const memory = db0(createDatabase(sqlite({ name: "xsaf-memory" })));
-const agent = xsaf.agent(config).memory(memory);
+const bot = agent(config).memory(memory);
 
 const hits = await memory.search({ query: "weather", limit: 10 });
 const scoped = await memory.search({ query: "weather", sessionId: "customer-1" });
@@ -199,7 +201,7 @@ const memory = unstorage(
   }),
 );
 
-const agent = xsaf.agent(config).memory(memory);
+const bot = agent(config).memory(memory);
 ```
 
 `unstorage` is an optional peer dependency. Session history is stored as a JSON `Message[]` under `xsaf:session:<encodedSessionId>`. Loaded payloads are validated; corrupt data fails the request. Call `unstorage(storage, { dispose: false })` when another owner still needs the Storage after agent shutdown.
@@ -216,7 +218,7 @@ interface XsafMemoryDriver {
 ```
 
 ```ts
-const agent = xsaf.agent(config).memory(durableMemory);
+const bot = agent(config).memory(durableMemory);
 ```
 
 Only one memory driver can be configured. XSAF treats memory failures as request failures rather than silently continuing with incomplete context.

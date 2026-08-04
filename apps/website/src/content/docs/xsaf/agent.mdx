@@ -1,26 +1,26 @@
 ---
-title: .agent()
+title: agent()
 description: Create the single fluent XSAF agent and configure its identity, model, and behavior.
 sidebar:
   order: 1
-  label: .agent()
+  label: agent()
 ---
 
 ## Signature
 
 ```ts
-xsaf.agent(config: AgentConfig): XsafAgent
+agent(config: AgentConfig): XsafAgent
 ```
 
-`.agent()` returns the same public object used for configuration, delegation, startup, invocation, and shutdown. Configuration performs no I/O and remains mutable until the agent is started or registered as a delegate.
+`agent()` returns the same public object used for configuration, delegation, startup, invocation, and shutdown. Configuration performs no I/O and remains mutable until the agent is started or registered as a delegate.
 
 ## Usage
 
 ```ts
-import { xsaf } from "@xsaf/agent";
+import { agent } from "@xsaf/agent";
 import xsai from "@xsaf/agent/model/xsai";
 
-const agent = xsaf.agent({
+const bot = agent({
   name: "research_agent",
   description: "Researches focused technical questions",
   persona: "Be concise and cite uncertainty.",

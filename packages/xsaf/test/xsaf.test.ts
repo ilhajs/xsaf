@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createORPCClient, type Client } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { XsafToolSchema } from "../src";
-import { ToolApprovalError, ToolTimeoutError, xsaf } from "../src";
+import { ToolApprovalError, ToolTimeoutError, agent } from "../src";
 import type {
   AgentResult,
   ModelRequest,
@@ -22,7 +22,7 @@ import { inMemory } from "../src/memory/in-memory";
 
 const config = (
   value: XsafModel | XsafModelAdapter,
-  overrides: Partial<Parameters<typeof xsaf.agent>[0]> = {},
+  overrides: Partial<Parameters<typeof agent>[0]> = {},
 ) => ({
   model: "adapter" in value ? value : { name: "mock-model", adapter: value },
   persona: "test persona",
@@ -105,7 +105,7 @@ async function collectChat(
 }
 
 async function read(
-  result: Awaited<ReturnType<ReturnType<typeof xsaf.agent>["invoke"]>>,
+  result: Awaited<ReturnType<ReturnType<typeof agent>["invoke"]>>,
 ): Promise<AgentResult> {
   if ("textStream" in result) {
     for await (const _chunk of result.textStream) {
@@ -118,16 +118,15 @@ async function read(
 describe("builder and lifecycle", () => {
   test("validates required config eagerly", () => {
     const adapter = new MockAdapter();
-    expect(() => xsaf.agent(config(adapter, { persona: "" }))).toThrow("persona");
-    expect(() => xsaf.agent(config(adapter, { model: { name: "", adapter } }))).toThrow("model");
-    expect(() => xsaf.agent(config(adapter, { maxSteps: 0 }))).toThrow("maxSteps");
+    expect(() => agent(config(adapter, { persona: "" }))).toThrow("persona");
+    expect(() => agent(config(adapter, { model: { name: "", adapter } }))).toThrow("model");
+    expect(() => agent(config(adapter, { maxSteps: 0 }))).toThrow("maxSteps");
   });
 
   test("does no driver work before start and closes in reverse order", async () => {
     const calls: string[] = [];
     const adapter = new MockAdapter();
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .channel({
         name: "first",
         listen() {
@@ -159,8 +158,7 @@ describe("builder and lifecycle", () => {
 
   test("cleans up resources when startup fails", async () => {
     const calls: string[] = [];
-    const builder = xsaf
-      .agent(config(new MockAdapter()))
+    const builder = agent(config(new MockAdapter()))
       .channel({
         name: "ok",
         listen() {
@@ -186,7 +184,7 @@ describe("builder and lifecycle", () => {
   });
 
   test("requires an explicit sandbox for executable tools", async () => {
-    const builder = xsaf.agent(config(mockModel())).tool({
+    const builder = agent(config(mockModel())).tool({
       name: "unsafe_tool",
       description: "must be isolated",
       input: objectSchema(),
@@ -196,7 +194,7 @@ describe("builder and lifecycle", () => {
   });
 
   test("propagates configured agent identity", async () => {
-    const builder = xsaf.agent(
+    const builder = agent(
       config(mockModel(), {
         name: "main_agent",
         description: "Primary test agent",
@@ -204,10 +202,7 @@ describe("builder and lifecycle", () => {
     );
     expect(builder.name).toBe("main_agent");
     expect(builder.description).toBe("Primary test agent");
-    const agent = builder;
-    expect(agent.name).toBe("main_agent");
-    expect(agent.description).toBe("Primary test agent");
-    expect(() => xsaf.agent(config(mockModel(), { name: "Not Valid" }))).toThrow(
+    expect(() => agent(config(mockModel(), { name: "Not Valid" }))).toThrow(
       "snake_case agent name",
     );
   });
@@ -215,7 +210,7 @@ describe("builder and lifecycle", () => {
   test("coalesces concurrent lifecycle calls", async () => {
     let listens = 0;
     let closes = 0;
-    const agent = xsaf.agent(config(mockModel())).channel({
+    const started = agent(config(mockModel())).channel({
       name: "concurrent",
       async listen() {
         await Promise.resolve();
@@ -227,15 +222,14 @@ describe("builder and lifecycle", () => {
         closes += 1;
       },
     });
-    await Promise.all([agent.start(), agent.start()]);
-    await Promise.all([agent.stop(), agent.stop()]);
+    await Promise.all([started.start(), started.start()]);
+    await Promise.all([started.stop(), started.stop()]);
     expect({ listens, closes }).toEqual({ listens: 1, closes: 1 });
   });
 
   test("aggregates shutdown failures after reverse-order cleanup", async () => {
     const closed: string[] = [];
-    const agent = xsaf
-      .agent(config(mockModel()))
+    const started = agent(config(mockModel()))
       .channel({
         name: "close_first",
         listen() {},
@@ -254,13 +248,13 @@ describe("builder and lifecycle", () => {
           throw new Error("second failed");
         },
       });
-    await agent.start();
-    await expect(agent.stop()).rejects.toBeInstanceOf(AggregateError);
+    await started.start();
+    await expect(started.stop()).rejects.toBeInstanceOf(AggregateError);
     expect(closed).toEqual(["second", "first"]);
   });
 
   test("rejects duplicate names and changes after sealing", () => {
-    const builder = xsaf.agent(config(new MockAdapter())).tool({
+    const builder = agent(config(new MockAdapter())).tool({
       name: "valid_tool",
       description: "valid",
       input: objectSchema(),
@@ -274,9 +268,9 @@ describe("builder and lifecycle", () => {
         async execute() {},
       }),
     ).toThrow("Duplicate");
-    const conflictingDelegate = xsaf.agent(config(new MockAdapter(), { name: "valid_tool" }));
+    const conflictingDelegate = agent(config(new MockAdapter(), { name: "valid_tool" }));
     expect(() => builder.delegate(conflictingDelegate)).toThrow("Duplicate");
-    const child = xsaf.agent(config(new MockAdapter(), { name: "child" }));
+    const child = agent(config(new MockAdapter(), { name: "child" }));
     builder.delegate(child);
     expect(child.name).toBe("child");
     expect(() => child.memory(inMemory())).toThrow("sealed");
@@ -289,7 +283,7 @@ describe("runtime, memory, and channels", () => {
       text: `reply:${request.messages.at(-1)?.content}`,
     }));
     const memory = inMemory();
-    const builder = xsaf.agent(config(adapter)).memory(memory);
+    const builder = agent(config(adapter)).memory(memory);
     await builder.start();
     expect((await read(await builder.invoke("one", "a"))).text).toBe("reply:one");
     await read(await builder.invoke("two", "b"));
@@ -302,7 +296,7 @@ describe("runtime, memory, and channels", () => {
   test("runs end-to-end with the public mock model and mock channel", async () => {
     const channel = mock();
     const adapter = mockModel({ response: "from-agent" });
-    const builder = xsaf.agent(config(adapter)).channel(channel);
+    const builder = agent(config(adapter)).channel(channel);
     await builder.start();
     await channel.receive({ sessionId: "chat-1", text: "hello" });
     expect(channel.sent).toEqual([{ target: "chat-1", payload: "from-agent" }]);
@@ -313,7 +307,7 @@ describe("runtime, memory, and channels", () => {
 
   test("serves authenticated SSE iterator through the HTTP channel", async () => {
     const channel = http({ path: "/chat", apiKey: "test-key" });
-    const builder = xsaf.agent(config(mockModel({ response: "http-channel" }))).channel(channel);
+    const builder = agent(config(mockModel({ response: "http-channel" }))).channel(channel);
     await builder.start();
 
     const fetchImpl = (async (
@@ -352,8 +346,7 @@ describe("runtime, memory, and channels", () => {
       await tool.execute({ value: 1 });
       return { text: "sunny" };
     });
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "weather_lookup",
@@ -402,7 +395,7 @@ describe("runtime, memory, and channels", () => {
 
   test("uses Hono as the HTTP invocation backbone", async () => {
     const adapter = mockModel({ response: "hono-response" });
-    const builder = xsaf.agent(config(adapter));
+    const builder = agent(config(adapter));
     await builder.start();
     const response = await builder.app.request("http://localhost/invoke", {
       method: "POST",
@@ -437,7 +430,7 @@ describe("runtime, memory, and channels", () => {
       active -= 1;
       return { text: `reply-${request.messages.at(-1)?.content}` };
     });
-    const builder = xsaf.agent(config(adapter));
+    const builder = agent(config(adapter));
     await builder.start();
     await Promise.all([
       builder.invoke("first", "serialized"),
@@ -468,7 +461,7 @@ describe("runtime, memory, and channels", () => {
         };
       },
     };
-    const builder = xsaf.agent(config(adapter, { stream: true })).memory(memory);
+    const builder = agent(config(adapter, { stream: true })).memory(memory);
     await builder.start();
     const result = await builder.invoke("go", "stream");
     expect("textStream" in result).toBe(true);
@@ -491,8 +484,7 @@ describe("tool pipeline", () => {
     });
     const approvals: string[] = [];
     const completed: string[] = [];
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox({
         ...local({ unsafe: true }),
         name: "tracking_host",
@@ -540,8 +532,7 @@ describe("tool pipeline", () => {
       }
       return { text: "handled" };
     });
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "denied_tool",
@@ -565,8 +556,7 @@ describe("tool pipeline", () => {
     const adapter = new MockAdapter(async (request) => ({
       text: String(await request.tools[0]?.execute({ value: 1 })),
     }));
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "slow_tool",
@@ -596,8 +586,7 @@ describe("tool pipeline", () => {
       await request.tools[0]?.execute({ value: 1 }, { signal: controller.signal });
       return { text: "cancelled" };
     });
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "cancelled_tool",
@@ -625,8 +614,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
       if (!tool) throw new Error("child_lookup tool missing");
       return { text: String(await tool.execute({ value: 1 })) };
     });
-    const child = xsaf
-      .agent(config(childAdapter, { name: "researcher", description: "research tasks" }))
+    const child = agent(config(childAdapter, { name: "researcher", description: "research tasks" }))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "child_lookup",
@@ -642,8 +630,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
       const result = (await delegate.execute({ prompt: "task" })) as AgentResult;
       return { text: String(result.text) };
     });
-    const parent = xsaf
-      .agent(config(parentAdapter))
+    const parent = agent(config(parentAdapter))
       .sandbox(local({ unsafe: true }))
       .delegate(child)
       .on("delegate.started", (event) => delegateEvents.push(event.type))
@@ -657,8 +644,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
   });
 
   test("serves tools through the Hono MCP backbone", async () => {
-    const builder = xsaf
-      .agent(config(mockModel()))
+    const builder = agent(config(mockModel()))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "echo_value",
@@ -779,8 +765,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
 
   test("rejects MCP tool names that collide with local tools", async () => {
     let closed = false;
-    const builder = xsaf
-      .agent(config(mockModel()))
+    const builder = agent(config(mockModel()))
       .sandbox(local({ unsafe: true }))
       .tool({
         name: "shared_tool",
@@ -815,8 +800,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     const adapter = new MockAdapter(async (request) => ({
       text: String(await request.tools[0]?.execute({ value: 1 })),
     }));
-    const builder = xsaf
-      .agent(config(adapter))
+    const builder = agent(config(adapter))
       .sandbox(local({ unsafe: true }))
       .mcp({
         name: "external",
@@ -853,8 +837,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
         return { async close() {} };
       },
     };
-    const builder = xsaf
-      .agent(config(new MockAdapter(() => ({ text: "heartbeat-result" }))))
+    const builder = agent(config(new MockAdapter(() => ({ text: "heartbeat-result" }))))
       .scheduler(scheduler)
       .schedule({
         cron: "*/15 * * * *",
@@ -879,7 +862,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
         return result.value;
       },
     };
-    const builder = xsaf.agent(config(adapter));
+    const builder = agent(config(adapter));
     await builder.start();
     expect(await builder.ask("object please", objectSchema())).toEqual({
       value: 7,

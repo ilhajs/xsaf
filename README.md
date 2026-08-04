@@ -5,9 +5,11 @@
 [Documentation](https://xsaf.ilha.build) · [Getting started](https://xsaf.ilha.build/getting-started) · [Roadmap](https://xsaf.ilha.build/roadmap) · [GitHub](https://github.com/ilhajs/xsaf)
 
 ```ts
-const agent = xsaf.agent(config).sandbox(sandbox).tool(search).memory(memory).serve();
+import { agent } from "@xsaf/agent";
 
-await agent.start();
+const bot = agent(config).sandbox(sandbox).tool(search).memory(memory).serve();
+
+await bot.start();
 ```
 
 XSAF coordinates models, tools, memory, channels, delegated agents, schedules, and MCP without turning your application into a workflow platform. Configuration stays visible, lifecycle stays deterministic, and deployment remains yours.
@@ -39,7 +41,7 @@ XSAF is ESM-only and declares Node.js 20 or newer. Its core HTTP surface uses we
 This complete example is deterministic and makes no network requests:
 
 ```ts
-import { xsaf } from "@xsaf/agent";
+import { agent } from "@xsaf/agent";
 import mockChannel from "@xsaf/agent/channel/mock";
 import mockModel from "@xsaf/agent/model/mock";
 
@@ -52,22 +54,21 @@ const model = mockModel({
 });
 
 const channel = mockChannel();
-const agent = xsaf
-  .agent({
-    name: "mock_assistant",
-    description: "A deterministic local assistant.",
-    model,
-    persona: "You are a concise assistant.",
-    stream: false,
-  })
+const bot = agent({
+  name: "mock_assistant",
+  description: "A deterministic local assistant.",
+  model,
+  persona: "You are a concise assistant.",
+  stream: false,
+})
   .channel(channel)
   .serve({ path: "/mcp" });
 
-await agent.start();
+await bot.start();
 await channel.receive({ sessionId: "demo", text: "hello xsaf" });
 
 console.log(channel.sent[0]?.payload);
-await agent.stop();
+await bot.stop();
 ```
 
 Move from the mock adapter to xsAI-backed models without changing the surrounding agent architecture.
@@ -88,11 +89,11 @@ The server remains the only owner of the agent. Response chunks and tool/delegat
 Every started agent exposes a shared Hono application:
 
 ```ts
-await agent.start();
+await bot.start();
 
 export default {
   fetch(request: Request) {
-    return agent.fetch(request);
+    return bot.fetch(request);
   },
 };
 ```

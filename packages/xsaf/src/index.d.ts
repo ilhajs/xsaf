@@ -1,4 +1,4 @@
-export { XsafAgent, xsaf } from "./core/builder";
+export { XsafAgent, agent } from "./core/builder";
 export {
   ToolApprovalError,
   ToolSandboxRequiredError,

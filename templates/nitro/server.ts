@@ -1,4 +1,4 @@
-import { xsaf } from "@xsaf/agent";
+import { agent } from "@xsaf/agent";
 import http from "@xsaf/agent/channel/http";
 import { db0 } from "@xsaf/agent/memory/db0";
 import xsai from "@xsaf/agent/model/xsai";
@@ -121,14 +121,13 @@ async function approve(
   return decided;
 }
 
-const weatherAdvisor = xsaf
-  .agent({
-    name: "weather_advisor",
-    description: "Suggest what to wear for the reported weather.",
-    model,
-    persona: "Give one short, practical clothing suggestion based on the weather.",
-    stream: true,
-  })
+const weatherAdvisor = agent({
+  name: "weather_advisor",
+  description: "Suggest what to wear for the reported weather.",
+  model,
+  persona: "Give one short, practical clothing suggestion based on the weather.",
+  stream: true,
+})
   .approve(approve)
   .sandbox(local({ unsafe: true }))
   .tool({
@@ -141,15 +140,14 @@ const weatherAdvisor = xsaf
     },
   });
 
-const agent = xsaf
-  .agent({
-    name: "xsaf",
-    description: "An interactive example agent with a tool and a delegate.",
-    model,
-    persona:
-      "Be concise. Use get_weather for weather data, search_memory for past messages, and delegate clothing advice.",
-    stream: true,
-  })
+const assistant = agent({
+  name: "xsaf",
+  description: "An interactive example agent with a tool and a delegate.",
+  model,
+  persona:
+    "Be concise. Use get_weather for weather data, search_memory for past messages, and delegate clothing advice.",
+  stream: true,
+})
   .approve(approve)
   .sandbox(local({ unsafe: true }))
   .memory(memory)
@@ -177,8 +175,8 @@ const agent = xsaf
   .channel(chatSdk(bot))
   .serve({ path: "/mcp", host: env.xsafMcpHost });
 
-await agent.start();
+await assistant.start();
 
-agent.app.post("/webhooks/telegram", (c) => bot.webhooks.telegram(c.req.raw));
+assistant.app.post("/webhooks/telegram", (c) => bot.webhooks.telegram(c.req.raw));
 
-export default defineHandler((event) => agent.fetch(event.req));
+export default defineHandler((event) => assistant.fetch(event.req));

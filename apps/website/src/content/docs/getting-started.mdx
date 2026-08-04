@@ -20,7 +20,7 @@ XSAF is ESM-only. Node.js 20 or newer is the declared Node runtime.
   <Step title="Create a mock agent">
 
 ```ts title="src/agent.ts"
-import { xsaf } from "@xsaf/agent";
+import { agent } from "@xsaf/agent";
 import mockChannel from "@xsaf/agent/channel/mock";
 import mockModel from "@xsaf/agent/model/mock";
 
@@ -34,16 +34,15 @@ const model = mockModel({
 
 const channel = mockChannel();
 
-const agent = xsaf
-  .agent({
-    model,
-    persona: "You are a deterministic test agent.",
-    stream: false,
-  })
+const bot = agent({
+  model,
+  persona: "You are a deterministic test agent.",
+  stream: false,
+})
   .channel(channel)
   .serve({ path: "/mcp" });
 
-await agent.start();
+await bot.start();
 
 await channel.receive({
   sessionId: "demo",
@@ -52,7 +51,7 @@ await channel.receive({
 
 console.log(channel.sent[0]?.payload);
 
-await agent.stop();
+await bot.stop();
 ```
 
 The mock model is fully configured, so tests need no placeholder endpoint or credentials.
@@ -76,10 +75,10 @@ Mock assistant received: hello xsaf
 
 ## Invoke through Hono
 
-Every agent owns a Hono app. Use `app.request()` in tests or wrap `agent.fetch(request)` for your runtime's HTTP server:
+Every agent owns a Hono app. Use `app.request()` in tests or wrap `bot.fetch(request)` for your runtime's HTTP server:
 
 ```ts
-const response = await agent.app.request("http://localhost/invoke", {
+const response = await bot.app.request("http://localhost/invoke", {
   method: "POST",
   headers: {
     host: "localhost",
@@ -103,7 +102,7 @@ Configure the bundled xsAI model explicitly:
 ```ts
 import xsai from "@xsaf/agent/model/xsai";
 
-const agent = xsaf.agent({
+const bot = agent({
   model: xsai({
     model: "your-provider/model",
     baseURL: process.env.MODEL_BASE_URL!,

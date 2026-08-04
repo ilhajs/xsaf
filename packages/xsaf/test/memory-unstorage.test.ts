@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
-import { xsaf } from "../src";
+import { agent } from "../src";
 import type { ModelRequest, ModelResponse, XsafModelAdapter } from "../src/types";
 import { unstorage } from "../src/memory/unstorage";
 
@@ -59,9 +59,9 @@ describe("memory/unstorage", () => {
       text: `reply:${request.messages.at(-1)?.content}`,
     }));
 
-    const first = xsaf
-      .agent(config(adapter))
-      .memory(unstorage(createStorage({ driver: fsDriver({ base }) })));
+    const first = agent(config(adapter)).memory(
+      unstorage(createStorage({ driver: fsDriver({ base }) })),
+    );
     await first.start();
     const result = await first.invoke("hello", "vps");
     if (!("text" in result)) throw new Error("expected non-streaming result");

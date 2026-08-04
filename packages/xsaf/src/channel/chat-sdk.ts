@@ -170,6 +170,7 @@ class ChatSdkChannel implements XsafChannelDriver {
  * import { Chat } from "chat";
  * import { createSlackAdapter } from "@chat-adapter/slack";
  * import { createRedisState } from "@chat-adapter/state-redis";
+ * import { agent } from "@xsaf/agent";
  * import chatSdk from "@xsaf/agent/channel/chat-sdk";
  *
  * const bot = new Chat({
@@ -181,8 +182,7 @@ class ChatSdkChannel implements XsafChannelDriver {
  * // Wire webhooks to your HTTP framework separately:
  * // app.post("/webhooks/slack", bot.webhooks.slack);
  *
- * const agent = xsaf
- *   .agent({ name: "mybot", model })
+ * const assistant = agent({ name: "mybot", model })
  *   .channel(chatSdk(bot))
  *   .start();
  * ```

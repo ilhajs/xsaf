@@ -17,8 +17,7 @@ agent.schedule(config: ScheduleConfig): XsafAgent
 ```ts
 import { cron } from "@xsaf/agent/scheduler/cron";
 
-const agent = xsaf
-  .agent(config)
+const bot = agent(config)
   .scheduler(cron())
   .schedule({
     cron: "*/15 * * * *",
@@ -54,4 +53,4 @@ It supports `*`, comma lists, numeric ranges, `/step`, and combinations such as 
 - Streamed results are collected before `onResult`.
 - Failures emit `heartbeat.failed` without crashing the timer callback.
 
-The bundled scheduler is process-local: it provides no distributed locks, persistence, backfill, or durable replay. Inject another structural `XsafSchedulerDriver` through [`.agent()`](/xsaf/agent) when those guarantees are required.
+The bundled scheduler is process-local: it provides no distributed locks, persistence, backfill, or durable replay. Inject another structural `XsafSchedulerDriver` through [`.scheduler()`](/xsaf/scheduler) when those guarantees are required.

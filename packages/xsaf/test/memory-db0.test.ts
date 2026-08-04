@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "db0";
 import sqlite from "db0/connectors/bun-sqlite";
-import { xsaf } from "../src";
+import { agent } from "../src";
 import type { ModelRequest, ModelResponse, XsafModelAdapter } from "../src/types";
 import { db0 } from "../src/memory/db0";
 
@@ -79,7 +79,7 @@ describe("memory/db0", () => {
     }));
 
     const firstDb = createDatabase(sqlite({ path }));
-    const first = xsaf.agent(config(adapter)).memory(db0(firstDb));
+    const first = agent(config(adapter)).memory(db0(firstDb));
     await first.start();
     const result = await first.invoke("hello", "vps");
     expect("text" in result ? result.text : null).toBe("reply:hello");

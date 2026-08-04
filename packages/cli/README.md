@@ -31,11 +31,12 @@ The CLI sends prompts to `POST /chat` and consumes its SSE response. Text chunks
 ## Server setup
 
 ```ts
+import { agent } from "@xsaf/agent";
 import http from "@xsaf/agent/channel/http";
 
-const agent = xsaf.agent(config).channel(http({ path: "/chat", apiKey: process.env.API_KEY }));
+const bot = agent(config).channel(http({ path: "/chat", apiKey: process.env.API_KEY }));
 
-await agent.start();
+await bot.start();
 ```
 
 ## Embedded usage

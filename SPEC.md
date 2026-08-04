@@ -7,8 +7,7 @@ XSAF is a minimal ESM-first TypeScript agent framework built on xsAI, Hono, and 
 ## Core API
 
 ```ts
-xsaf
-  .agent(config)
+agent(config)
   .sandbox(driver)
   .tool(tool)
   .delegate(agent)
@@ -22,7 +21,7 @@ xsaf
   .start();
 ```
 
-Fluent agent methods configure only. I/O and timers begin at `.start()`.
+Fluent agent methods configure only. I/O and timers begin at `.start()`. `agent(config)` validates required config eagerly.
 
 ## Model calls
 

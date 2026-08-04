@@ -57,8 +57,7 @@ The published core uses `xsai` for model calls and Hono plus the MCP TypeScript 
 Target chain:
 
 ```ts
-xsaf
-  .agent(config)
+agent(config)
   .sandbox(driver)
   .tool(config)
   .delegate(agent, options)
@@ -74,7 +73,7 @@ xsaf
 Rules:
 
 - Fluent agent methods only configure; no I/O/background work begins before `.start()`.
-- `.agent()` validates required config eagerly.
+- `agent(config)` validates required config eagerly.
 - `.delegate(agent, options?)` seals a configured child agent and exposes it as a model-visible tool.
 - `.start()` rejects/handles double start predictably; `.stop()` is idempotent and safe after partial startup.
 - Start resources in declaration order when relevant; stop in reverse order.

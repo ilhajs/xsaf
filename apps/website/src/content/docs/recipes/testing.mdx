@@ -12,8 +12,7 @@ XSAF's public mock adapters keep tests deterministic and ensure default test sui
     Test model requests, memory, channels, and lifecycle without mocking private modules.
   </Card>
   <Card title="Exercise HTTP in memory" icon="ph:browser" href="#test-hono-without-a-listener">
-    Call `agent.app.request()` or `agent.fetch()` with web-standard requests instead of opening a
-    port.
+    Call `bot.app.request()` or `bot.fetch()` with web-standard requests instead of opening a port.
   </Card>
 </CardGrid>
 
@@ -21,27 +20,25 @@ XSAF's public mock adapters keep tests deterministic and ensure default test sui
 
 ```ts title="agent.test.ts"
 import { expect, test } from "bun:test";
-import { xsaf } from "@xsaf/agent";
+import { agent } from "@xsaf/agent";
 import mockChannel from "@xsaf/agent/channel/mock";
 import mockModel from "@xsaf/agent/model/mock";
 
 test("replies through a channel", async () => {
   const model = mockModel({ response: "mock reply" });
   const channel = mockChannel();
-  const agent = xsaf
-    .agent({
-      model,
-      persona: "Test agent",
-      stream: false,
-    })
-    .channel(channel);
+  const bot = agent({
+    model,
+    persona: "Test agent",
+    stream: false,
+  }).channel(channel);
 
-  await agent.start();
+  await bot.start();
   try {
     await channel.receive({ sessionId: "test", text: "hello" });
     expect(channel.sent[0]?.payload).toBe("mock reply");
   } finally {
-    await agent.stop();
+    await bot.stop();
   }
 });
 ```
@@ -64,7 +61,7 @@ const model = mockModel({
 ## Test Hono without a listener
 
 ```ts
-const response = await agent.app.request("http://localhost/invoke", {
+const response = await bot.app.request("http://localhost/invoke", {
   method: "POST",
   headers: {
     host: "localhost",
@@ -90,8 +87,7 @@ Tools still require an explicit sandbox in tests. When the function is trusted t
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const agent = xsaf
-  .agent(config)
+const bot = agent(config)
   .sandbox(local({ unsafe: true }))
   .tool(tool);
 ```

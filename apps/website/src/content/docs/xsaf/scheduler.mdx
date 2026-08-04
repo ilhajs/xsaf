@@ -17,7 +17,7 @@ agent.scheduler(driver: XsafSchedulerDriver): XsafAgent
 ```ts
 import { cron } from "@xsaf/agent/scheduler/cron";
 
-const agent = xsaf.agent(config).scheduler(cron()).schedule({
+const bot = agent(config).scheduler(cron()).schedule({
   cron: "*/15 * * * *",
   prompt: "Check service status",
 });

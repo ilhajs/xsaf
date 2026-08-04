@@ -61,7 +61,7 @@ function validateTool(config: ToolConfig): void {
   }
 }
 
-/** The single fluent configuration and runtime object returned by xsaf.agent(). */
+/** The single fluent configuration and runtime object returned by `agent()`. */
 export class XsafAgent {
   readonly #config: AgentConfig;
   readonly #events = new EventBus();
@@ -262,8 +262,7 @@ export class XsafAgent {
   }
 }
 
-export const xsaf = {
-  agent(config: AgentConfig): XsafAgent {
-    return new XsafAgent(config);
-  },
-};
+/** Create a fluent agent. Methods configure only; I/O and timers begin at `.start()`. */
+export function agent(config: AgentConfig): XsafAgent {
+  return new XsafAgent(config);
+}

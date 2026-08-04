@@ -8,8 +8,9 @@ sidebar:
 A tool combines a lowercase snake_case name, a description, a dual Standard Schema and JSON Schema input, and an execute function.
 
 ```ts
-const agent = xsaf
-  .agent(config)
+import { agent } from "@xsaf/agent";
+
+const bot = agent(config)
   .sandbox(sandbox)
   .tool({
     name: "lookup_order",
@@ -83,7 +84,7 @@ The validator must enforce the same meaning at runtime. JSON Schema advertisemen
 
 Use a schema library only when the installed version implements both Standard Schema V1 and Standard JSON Schema V1. XSAF intentionally does not depend on a specific schema package.
 
-`agent.ask(prompt, schema)` accepts a `StandardSchemaV1` output validator. It does not require `XsafToolSchema` because XSAF does not publish that schema as a model-visible tool definition.
+`bot.ask(prompt, schema)` accepts a `StandardSchemaV1` output validator. It does not require `XsafToolSchema` because XSAF does not publish that schema as a model-visible tool definition.
 
 ## Execution order
 
@@ -126,8 +127,7 @@ The callback receives validated input and `{ tool, sessionId }`. Returning `fals
 Register a privileged handler separately from ordinary event telemetry:
 
 ```ts
-const agent = xsaf
-  .agent(config)
+const bot = agent(config)
   .approve(async (request) => {
     return approvalService.decide(request);
   })
@@ -191,7 +191,7 @@ Executable local, delegated, and MCP tools require an explicit sandbox. XSAF nev
 ### Register a sandbox
 
 ```ts
-const agent = xsaf.agent(config).sandbox(productionSandbox).tool(tool);
+const bot = agent(config).sandbox(productionSandbox).tool(tool);
 ```
 
 A tool or delegate can instead set its own `sandbox`. A default sandbox is still required for MCP tools because their definitions come from the remote server.
@@ -220,7 +220,7 @@ For tests and code you fully trust, opt out of isolation deliberately:
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const agent = xsaf.agent(config).sandbox(local({ unsafe: true }));
+const bot = agent(config).sandbox(local({ unsafe: true }));
 ```
 
 `local({ unsafe: true })` executes the function in the current JavaScript process. It provides **no filesystem, network, shell, memory, or process isolation**. A timeout only aborts the signal cooperatively; it cannot forcibly terminate arbitrary host code. The `{ unsafe: true }` acknowledgement is required.
