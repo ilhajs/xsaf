@@ -8,7 +8,7 @@
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@chat-adapter/state-redis": "^4.36.0",
+    "@chat-adapter/state-memory": "^4.36.0",
     "@chat-adapter/telegram": "^4.36.0",
     "@xsaf/agent": "https://pkg.pr.new/ilhajs/xsaf/@xsaf/agent@main",
     "chat": "^4.36.0",

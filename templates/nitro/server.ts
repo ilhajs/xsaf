@@ -7,7 +7,7 @@ import { useRuntimeConfig } from "nitro/runtime-config";
 import { z } from "zod";
 import { Chat } from "chat";
 import { createTelegramAdapter } from "@chat-adapter/telegram";
-import { createRedisState } from "@chat-adapter/state-redis";
+import { createMemoryState } from "@chat-adapter/state-memory";
 import chatSdk from "@xsaf/agent/channel/chat-sdk";
 
 const env = z
@@ -17,6 +17,9 @@ const env = z
     xsafAiBaseUrl: z.string(),
     xsafChatKey: z.string().min(1),
     xsafMcpHost: z.string().default("0.0.0.0"),
+    telegramBotToken: z.string(),
+    telegramWebhookSecretToken: z.string(),
+    telegramBotUsername: z.string(),
   })
   .parse(useRuntimeConfig());
 
@@ -29,9 +32,14 @@ const model = xsai({
 const bot = new Chat({
   userName: "xsaf",
   adapters: {
-    telegram: createTelegramAdapter(),
+    telegram: createTelegramAdapter({
+      mode: "polling",
+      botToken: env.telegramBotToken,
+      secretToken: env.telegramWebhookSecretToken,
+      userName: env.telegramBotUsername,
+    }),
   },
-  state: createRedisState(),
+  state: createMemoryState(),
 });
 
 const weatherAdvisor = xsaf
@@ -67,8 +75,8 @@ const agent = xsaf
   .channel(chatSdk(bot))
   .serve({ path: "/mcp", host: env.xsafMcpHost });
 
-agent.app.post("/webhooks/telegram", (c) => bot.webhooks.telegram(c.req.raw));
-
 await agent.start();
+
+agent.app.post("/webhooks/telegram", (c) => bot.webhooks.telegram(c.req.raw));
 
 export default defineHandler((event) => agent.fetch(event.req));
