@@ -10,6 +10,14 @@ import { createTelegramAdapter } from "@chat-adapter/telegram";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import chatSdk from "@xsaf/agent/channel/chat-sdk";
 
+import {
+  buildApprovalCard,
+  buildResolvedCard,
+  APPROVE_ACTION_ID,
+  DENY_ACTION_ID,
+  type ApprovalCardOptions,
+} from "chat/workflow";
+
 const env = z
   .object({
     xsafAiModel: z.string(),
@@ -41,6 +49,29 @@ const bot = new Chat({
   state: createMemoryState(),
 });
 
+const pendingApprovals = new Map<
+  string,
+  { resolve: (approved: boolean) => void; options: ApprovalCardOptions }
+>();
+
+bot.onAction([APPROVE_ACTION_ID, DENY_ACTION_ID], async (event) => {
+  const pending = pendingApprovals.get(event.messageId);
+  if (pending) {
+    const approved = event.actionId === APPROVE_ACTION_ID;
+    pending.resolve(approved);
+    pendingApprovals.delete(event.messageId);
+
+    await event.adapter.editMessage(
+      event.threadId,
+      event.messageId,
+      buildResolvedCard(
+        pending.options,
+        approved ? `Approved by @${event.user.userName}` : `Denied by @${event.user.userName}`,
+      ),
+    );
+  }
+});
+
 const weatherAdvisor = xsaf
   .agent({
     name: "weather_advisor",
@@ -54,7 +85,7 @@ const weatherAdvisor = xsaf
     name: "get_weather",
     description: "Get the current mocked weather for a city.",
     input: z.object({ city: z.string() }),
-    approval: "auto",
+    approval: "human",
     async execute({ city }) {
       return { city, temperatureCelsius: 22, conditions: "sunny" };
     },
@@ -67,6 +98,19 @@ const agent = xsaf
     model,
     persona: "Be concise. Use get_weather for weather data and delegate clothing advice.",
     stream: true,
+  })
+  .approve(async (input, context) => {
+    const thread = bot.thread(context.sessionId);
+    const options: ApprovalCardOptions = {
+      title: `Approve ${context.tool}?`,
+      fields: { Input: JSON.stringify(input) },
+    };
+
+    const message = await thread.post(buildApprovalCard(options, undefined as any));
+
+    return new Promise<boolean>((resolve) => {
+      pendingApprovals.set(message.id, { resolve, options });
+    });
   })
   .sandbox(local())
   .delegate(weatherAdvisor)
