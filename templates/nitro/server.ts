@@ -33,7 +33,6 @@ const bot = new Chat({
   userName: "xsaf",
   adapters: {
     telegram: createTelegramAdapter({
-      mode: "polling",
       botToken: env.telegramBotToken,
       secretToken: env.telegramWebhookSecretToken,
       userName: env.telegramBotUsername,
