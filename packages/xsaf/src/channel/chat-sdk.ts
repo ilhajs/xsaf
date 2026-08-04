@@ -105,7 +105,19 @@ class ChatSdkChannel implements XsafChannelDriver {
       const text = message.text?.trim();
       if (!text) return;
       const sessionId = this.#sessionId(thread, message);
-      await context.dispatch({ sessionId, text, meta: { threadId: thread.id } });
+      try {
+        await context.dispatch({ sessionId, text, meta: { threadId: thread.id } });
+      } catch (error) {
+        // context.dispatch (agent invoke + send) threw — post the error back so
+        // the user sees something rather than the message being silently dropped
+        // by the chat-sdk concurrency layer.
+        const msg = error instanceof Error ? error.message : "An error occurred. Please try again.";
+        try {
+          await thread.post(msg);
+        } catch {
+          // best-effort; ignore secondary send failures
+        }
+      }
     };
 
     if (this.#listenFor.has("mention")) {

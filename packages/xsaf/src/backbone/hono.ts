@@ -5,6 +5,7 @@ import {
   McpServer,
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
+import { logger } from "hono/logger";
 import type { AgentResult, ModelTool } from "../types";
 
 export interface HonoBackboneOptions {
@@ -55,6 +56,7 @@ export class HonoBackbone {
       ...(options.allowedHosts ? { allowedHosts: options.allowedHosts as string[] } : {}),
       ...(options.allowedOrigins ? { allowedOrigins: options.allowedOrigins as string[] } : {}),
     });
+    app.use(logger());
     app.get("/health", (context) => context.json({ ok: true }));
     app.post(this.#defaults.invokePath, async (context) => {
       const body = await context.req.json<{
