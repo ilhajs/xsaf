@@ -81,6 +81,29 @@ Requests accepting `text/event-stream` receive typed events for response chunks 
 
 The HTTP channel tracks pending responses by session in FIFO order. Its `send()` target must be a session ID, and closing the channel rejects pending requests. Use `@xsaf/agent/channel/mock` for deterministic in-process tests; see [Testing](/recipes/testing).
 
+### Chat SDK channel
+
+The Chat SDK channel bridges the universal `chat` package to natively support Slack, Teams, Discord, Telegram, Google Chat, and other platforms.
+
+```ts
+import { Chat } from "chat";
+import { createSlackAdapter } from "@chat-adapter/slack";
+import chatSdk from "@xsaf/agent/channel/chat-sdk";
+
+const bot = new Chat({
+  userName: "mybot",
+  adapters: { slack: createSlackAdapter() },
+  // ... state adapter, etc.
+});
+
+// Wire webhooks to your HTTP framework separately:
+// app.post("/webhooks/slack", bot.webhooks.slack);
+
+const agent = xsaf.agent(config).channel(chatSdk(bot));
+```
+
+The driver registers inbound handlers on `bot` at `listen()` time and dispatches each incoming message into the XSAF request path. Outbound payloads are posted back to the originating platform thread.
+
 ## Sessions and streaming
 
 Session IDs define both memory history and concurrency ordering. Direct invocation defaults to `"default"`; the built-in `/invoke` route defaults to `"http"`.

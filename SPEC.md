@@ -76,8 +76,9 @@ Alpha bundles:
 
 - `@xsaf/agent/channel/mock` for deterministic tests.
 - `@xsaf/agent/channel/http` mounted on the shared Hono app, with JSON responses and SSE for streamed responses.
+- `@xsaf/agent/channel/chat-sdk` which bridges the universal `chat` package (Chat SDK) to natively support Slack, Teams, Discord, Telegram, Google Chat, and other platforms.
 
-Other chat-platform channels are post-alpha adapters.
+Other custom channels are post-alpha adapters.
 
 ## Memory and concurrency
 
@@ -105,4 +106,4 @@ Startup is coalesced and cleans partially initialized resources on failure. Shut
 
 ## Post-alpha
 
-AgentOS implementation packages, SQLite memory, Telegram/Discord/Slack/WebSocket channels, socket listeners, stdio MCP, distributed scheduling, workflow durability, multi-tenant auth, rate limiting, CLI scaffolding, and dashboards are outside alpha scope.
+AgentOS implementation packages, SQLite memory, socket listeners, stdio MCP, distributed scheduling, workflow durability, multi-tenant auth, rate limiting, CLI scaffolding, and dashboards are outside alpha scope.

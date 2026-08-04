@@ -38,7 +38,23 @@ agent.channel({
 
 Channel names must be unique. Channels start in registration order and close in reverse order. Startup performs cleanup if a later channel fails.
 
-Bundled adapters are available from `@xsaf/agent/channel/http` and `@xsaf/agent/channel/mock`. The mock channel is deterministic and offline.
+Bundled adapters are available from `@xsaf/agent/channel/http`, `@xsaf/agent/channel/chat-sdk`, and `@xsaf/agent/channel/mock`. The mock channel is deterministic and offline.
+
+The `chat-sdk` channel bridges the universal `chat` package (Chat SDK) to natively support Slack, Teams, Discord, Telegram, Google Chat, and other platforms.
+
+```ts
+import { Chat } from "chat";
+import { createSlackAdapter } from "@chat-adapter/slack";
+import chatSdk from "@xsaf/agent/channel/chat-sdk";
+
+const bot = new Chat({
+  userName: "mybot",
+  adapters: { slack: createSlackAdapter() },
+  // ... state adapter, etc.
+});
+
+agent.channel(chatSdk(bot));
+```
 
 The HTTP channel mounts a streaming chat endpoint on the shared Hono app:
 
