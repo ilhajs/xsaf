@@ -44,22 +44,30 @@ const bot = new Chat({
 
 const APPROVE = "approve";
 const DENY = "deny";
-const approvals = useStorage<{ approved: boolean }>("approvals");
+
+type ApprovalRecord = {
+  readonly tool: string;
+  readonly approved?: boolean;
+};
+
+const approvals = useStorage<ApprovalRecord>("approvals");
 
 bot.onAction([APPROVE, DENY], async (event) => {
   const id = event.value;
   if (!id) return;
 
+  const pending = await approvals.getItem(id);
+  const tool = pending?.tool ?? "unknown";
   const approved = event.actionId === APPROVE;
-  await approvals.setItem(id, { approved });
+  await approvals.setItem(id, { tool, approved });
 
   if (event.thread) {
     await event.adapter.editMessage(
       event.threadId,
       event.messageId,
       Card({
-        title: "Tool approval",
-        children: [CardText(approved ? "Approved." : "Denied.")],
+        title: `\`${tool}\``,
+        children: [CardText(approved ? "✅ Approved" : "⛔ Denied")],
       }),
     );
   }
@@ -81,7 +89,8 @@ async function approve(
     const unwatch = approvals.watch(async (event, key) => {
       if (event !== "update" || key !== storageKey) return;
       const value = await approvals.getItem(id);
-      if (value == null) return;
+      // Ignore the initial pending write (tool only, no decision yet).
+      if (value?.approved == null) return;
       await (
         await unwatch
       )();
@@ -89,6 +98,8 @@ async function approve(
       resolve(value.approved);
     });
   });
+
+  await approvals.setItem(id, { tool: context.tool });
 
   await thread.post(
     Card({
