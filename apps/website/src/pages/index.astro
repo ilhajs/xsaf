@@ -7,14 +7,22 @@ import { config } from "virtual:nimbus/config";
 
 const base = import.meta.env.BASE_URL;
 const href = (path: string) => `${base}${path}`;
-const example = `const agent = xsaf
-  .agent(config)
-  .sandbox(sandbox)
-  .tool(search)
-  .memory(memory)
-  .serve();
+const example = `import { agent } from "@xsaf/agent";
+import http from "@xsaf/agent/channel/http";
+import local from "@xsaf/agent/sandbox/local";
 
-await agent.start();`;
+const bot = agent({
+  name: "ops_assistant",
+  persona: "Be concise. Prefer tools over guesses.",
+  model,
+})
+  .sandbox(local({ unsafe: true }))
+  .tool(lookupOrder)
+  .memory(memory)
+  .channel(http({ path: "/chat" }))
+  .serve({ path: "/mcp" });
+
+await bot.start();`;
 
 const capabilities = [
   {
