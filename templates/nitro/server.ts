@@ -9,14 +9,8 @@ import { Chat } from "chat";
 import { createTelegramAdapter } from "@chat-adapter/telegram";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import chatSdk from "@xsaf/agent/channel/chat-sdk";
-
-import {
-  buildApprovalCard,
-  buildResolvedCard,
-  APPROVE_ACTION_ID,
-  DENY_ACTION_ID,
-  type ApprovalCardOptions,
-} from "chat/workflow";
+import { start } from "workflow/api";
+import { requestToolApproval } from "./workflows/tool-approval";
 
 const env = z
   .object({
@@ -47,58 +41,19 @@ const bot = new Chat({
     }),
   },
   state: createMemoryState(),
-});
+}).registerSingleton();
 
-const pendingApprovals = new Map<
-  string,
-  { resolve: (approved: boolean) => void; options: ApprovalCardOptions }
->();
-
-bot.onAction([APPROVE_ACTION_ID, DENY_ACTION_ID], async (event) => {
-  const pending = pendingApprovals.get(event.messageId);
-  if (pending) {
-    const approved = event.actionId === APPROVE_ACTION_ID;
-    pending.resolve(approved);
-    pendingApprovals.delete(event.messageId);
-
-    await event.adapter.editMessage(
-      event.threadId,
-      event.messageId,
-      buildResolvedCard(
-        pending.options,
-        approved ? `Approved by @${event.user.userName}` : `Denied by @${event.user.userName}`,
-      ),
-    );
-  }
-});
-
-/** Delegate runs use `${parentSession}:delegate:${name}` — strip for platform thread IDs. */
-function platformThreadId(sessionId: string): string {
-  const idx = sessionId.indexOf(":delegate:");
-  return idx === -1 ? sessionId : sessionId.slice(0, idx);
-}
-
-const handleApproval = async (
+/** Chat SDK + Workflow durable approval (see https://chat-sdk.dev/docs/approvals). */
+async function approve(
   input: unknown,
   context: { readonly tool: string; readonly sessionId: string },
-) => {
-  // get_weather lives on weather_advisor; its sessionId is mangled for memory isolation
-  // and is not a valid Telegram thread ID (`telegram:{chatId}:delegate:...` → 4+ parts).
-  const thread = bot.thread(platformThreadId(context.sessionId));
-  const options: ApprovalCardOptions = {
-    title: `Approve ${context.tool}?`,
-    fields: { Input: JSON.stringify(input) },
-  };
-
-  const message = await thread.post(
-    // undefined webhookUrl → Telegram callback_data → bot.onAction (not Workflow webhook)
-    buildApprovalCard(options, undefined as any),
-  );
-
-  return new Promise<boolean>((resolve) => {
-    pendingApprovals.set(message.id, { resolve, options });
-  });
-};
+): Promise<boolean> {
+  // Strip `:delegate:…` — chat-sdk thread IDs reject the mangled memory session.
+  const thread = bot.thread(context.sessionId.replace(/:delegate:.*$/, ""));
+  const run = await start(requestToolApproval, [{ thread, tool: context.tool, input }]);
+  const result = await run.returnValue;
+  return result.approved;
+}
 
 const weatherAdvisor = xsaf
   .agent({
@@ -108,7 +63,7 @@ const weatherAdvisor = xsaf
     persona: "Give one short, practical clothing suggestion based on the weather.",
     stream: true,
   })
-  .approve(handleApproval)
+  .approve(approve)
   .sandbox(local())
   .tool({
     name: "get_weather",
@@ -128,7 +83,7 @@ const agent = xsaf
     persona: "Be concise. Use get_weather for weather data and delegate clothing advice.",
     stream: true,
   })
-  .approve(handleApproval)
+  .approve(approve)
   .sandbox(local())
   .delegate(weatherAdvisor)
   .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
