@@ -1,28 +1,72 @@
 ---
 title: agent()
-description: API reference for creating and configuring XSAF agents with the fluent agent factory.
+description: Create and configure an XSAF agent with the fluent agent factory.
 sidebar:
-  order: 2
+  order: 1
   label: agent()
 ---
 
-Import the `agent` factory from `@xsaf/agent`. Calling [`agent()`](/xsaf/agent) creates an `XsafAgent`; every configuration method returns that same agent so configuration reads as one chain.
+Import the `agent` factory from `@xsaf/agent`. Calling `agent()` creates an `XsafAgent`; every configuration method returns that same agent so configuration reads as one chain.
+
+```ts
+agent(config: AgentConfig): XsafAgent
+```
+
+`agent()` returns the same public object used for configuration, delegation, startup, invocation, and shutdown. Configuration performs no I/O and remains mutable until the agent is started or registered as a delegate.
+
+## Usage
 
 ```ts
 import { agent } from "@xsaf/agent";
+import xsai from "@xsaf/agent/model/xsai";
 
-const bot = agent(config).memory(memory).sandbox(sandbox).tool(searchTool).channel(channel).serve();
+const bot = agent({
+  name: "research_agent",
+  description: "Researches focused technical questions",
+  persona: "Be concise and cite uncertainty.",
+  model: xsai({
+    model: "openai/gpt-4.1-mini",
+    baseURL: "https://api.openai.com/v1/",
+    apiKey: process.env.OPENAI_API_KEY!,
+  }),
+  maxSteps: 3,
+  stream: true,
+  reasoning: "low",
+})
+  .memory(memory)
+  .sandbox(sandbox)
+  .tool(searchTool)
+  .channel(channel)
+  .serve();
 
 await bot.start();
 ```
 
 Configuration is inert until [`.start()`](/xsaf/start) is called. Registering an agent with [`.delegate()`](/xsaf/delegate) seals that child automatically.
 
+## Configuration
+
+```ts
+interface AgentConfig {
+  name?: string;
+  description?: string;
+  model: XsafModel;
+  persona: string;
+  maxSteps?: number;
+  stream?: boolean;
+  reasoning?: "none" | "low" | "high";
+}
+```
+
+`model` is a configured dependency, so custom and mock models do not need placeholder URLs or credentials. `persona` must be nonblank. Names must use lowercase snake_case; descriptions must be nonblank when provided. `maxSteps` defaults to `3`, `stream` to `true`, and `reasoning` to `"none"`.
+
+Use `@xsaf/agent/model/mock` for deterministic tests and `@xsaf/agent/model/xsai` for xsAI-compatible providers.
+
 ## Fluent methods
 
 | Method                            | Purpose                                                      |
 | --------------------------------- | ------------------------------------------------------------ |
-| [`agent()`](/xsaf/agent)          | Create an agent and define its model, persona, and identity. |
+| `agent()`                         | Create an agent and define its model, persona, and identity. |
 | [`.tool()`](/xsaf/tool)           | Register a validated, model-visible tool.                    |
 | [`.channel()`](/xsaf/channel)     | Add an inbound and outbound messaging channel.               |
 | [`.mcp()`](/xsaf/mcp)             | Connect tools, resources, and prompts from an MCP v2 server. |
