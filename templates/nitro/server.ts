@@ -5,12 +5,11 @@ import local from "@xsaf/agent/sandbox/local";
 import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 import { z } from "zod";
-import { Chat } from "chat";
+import { Actions, Button, Card, CardText, Chat } from "chat";
 import { createTelegramAdapter } from "@chat-adapter/telegram";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import chatSdk from "@xsaf/agent/channel/chat-sdk";
-import { start } from "workflow/api";
-import { requestToolApproval } from "./workflows/tool-approval";
+import { useStorage } from "nitro/storage";
 
 const env = z
   .object({
@@ -43,45 +42,68 @@ const bot = new Chat({
   state: createMemoryState(),
 }).registerSingleton();
 
-function approvalLog(stage: string, detail?: Record<string, unknown>) {
-  console.log("[xsaf:approval]", stage, detail ?? "");
-}
+const APPROVE = "approve";
+const DENY = "deny";
+const approvals = useStorage<{ approved: boolean }>("approvals");
 
-/** Chat SDK + Workflow durable approval (see https://chat-sdk.dev/docs/approvals). */
+bot.onAction([APPROVE, DENY], async (event) => {
+  const id = event.value;
+  if (!id) return;
+
+  const approved = event.actionId === APPROVE;
+  await approvals.setItem(id, { approved });
+
+  if (event.thread) {
+    await event.adapter.editMessage(
+      event.threadId,
+      event.messageId,
+      Card({
+        title: "Tool approval",
+        children: [CardText(approved ? "Approved." : "Denied.")],
+      }),
+    );
+  }
+});
+
+/** Alpha HITL: Card + onAction, decision via Nitro storage (default: in-memory). */
 async function approve(
   input: unknown,
   context: { readonly tool: string; readonly sessionId: string },
 ): Promise<boolean> {
   // Strip `:delegate:…` — chat-sdk thread IDs reject the mangled memory session.
   const sessionId = context.sessionId.replace(/:delegate:.*$/, "");
-  approvalLog("handler:enter", {
-    tool: context.tool,
-    rawSessionId: context.sessionId,
-    threadSessionId: sessionId,
-    workflowId: (requestToolApproval as { workflowId?: string }).workflowId,
+  const thread = bot.thread(sessionId);
+  const id = crypto.randomUUID();
+
+  // prefixStorage watch emits absolute keys (`approvals:<id>`).
+  const storageKey = `approvals:${id}`;
+  const decided = new Promise<boolean>((resolve) => {
+    const unwatch = approvals.watch(async (event, key) => {
+      if (event !== "update" || key !== storageKey) return;
+      const value = await approvals.getItem(id);
+      if (value == null) return;
+      await (
+        await unwatch
+      )();
+      await approvals.removeItem(id);
+      resolve(value.approved);
+    });
   });
 
-  try {
-    const thread = bot.thread(sessionId);
-    approvalLog("handler:thread", { threadId: thread.id });
+  await thread.post(
+    Card({
+      title: `Approve \`${context.tool}\`?`,
+      children: [
+        CardText(`\`\`\`json\n${JSON.stringify(input, null, 2)}\n\`\`\``),
+        Actions([
+          Button({ id: APPROVE, label: "Approve", style: "primary", value: id }),
+          Button({ id: DENY, label: "Deny", style: "danger", value: id }),
+        ]),
+      ],
+    }),
+  );
 
-    const run = await start(requestToolApproval, [{ thread, tool: context.tool, input }]);
-    approvalLog("handler:started", { runId: run.runId });
-
-    const result = await run.returnValue;
-    approvalLog("handler:returnValue", {
-      approved: result?.approved,
-      result,
-    });
-    return result.approved;
-  } catch (error) {
-    approvalLog("handler:error", {
-      name: error instanceof Error ? error.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    throw error;
-  }
+  return decided;
 }
 
 const weatherAdvisor = xsaf
