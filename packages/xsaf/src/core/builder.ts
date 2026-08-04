@@ -245,7 +245,7 @@ export class XsafAgent {
     const hasMcp = this.#resources.some((resource) => resource.type === "mcp");
     if (!hasDefault && (hasUnisolatedTool || hasUnisolatedDelegate || hasMcp)) {
       throw new Error(
-        "Executable tools require an explicit sandbox. Configure AgentOS or opt into unsafe local execution with .sandbox(local()).",
+        "Executable tools require an explicit sandbox. Configure AgentOS or opt into unsafe local execution with .sandbox(local({ unsafe: true })).",
       );
     }
   }

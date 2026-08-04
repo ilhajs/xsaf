@@ -90,7 +90,10 @@ Tools still require an explicit sandbox in tests. When the function is trusted t
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const agent = xsaf.agent(config).sandbox(local()).tool(tool);
+const agent = xsaf
+  .agent(config)
+  .sandbox(local({ unsafe: true }))
+  .tool(tool);
 ```
 
 This is a deliberate no-isolation adapter, not a production sandbox.

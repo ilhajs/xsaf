@@ -220,10 +220,10 @@ For tests and code you fully trust, opt out of isolation deliberately:
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-const agent = xsaf.agent(config).sandbox(local());
+const agent = xsaf.agent(config).sandbox(local({ unsafe: true }));
 ```
 
-`local()` executes the function in the current JavaScript process. It provides **no filesystem, network, shell, memory, or process isolation**. A timeout only aborts the signal cooperatively; it cannot forcibly terminate arbitrary host code.
+`local({ unsafe: true })` executes the function in the current JavaScript process. It provides **no filesystem, network, shell, memory, or process isolation**. A timeout only aborts the signal cooperatively; it cannot forcibly terminate arbitrary host code. The `{ unsafe: true }` acknowledgement is required.
 
 <Aside type="danger" title="Do not mistake local execution for a sandbox">
 

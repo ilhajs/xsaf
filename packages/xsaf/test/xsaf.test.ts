@@ -354,7 +354,7 @@ describe("runtime, memory, and channels", () => {
     });
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "weather_lookup",
         description: "looks up weather",
@@ -494,7 +494,7 @@ describe("tool pipeline", () => {
     const builder = xsaf
       .agent(config(adapter))
       .sandbox({
-        ...local(),
+        ...local({ unsafe: true }),
         name: "tracking_host",
         async run(fn, args) {
           sandboxRuns += 1;
@@ -542,7 +542,7 @@ describe("tool pipeline", () => {
     });
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "denied_tool",
         description: "denied",
@@ -567,7 +567,7 @@ describe("tool pipeline", () => {
     }));
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "slow_tool",
         description: "slow",
@@ -598,7 +598,7 @@ describe("tool pipeline", () => {
     });
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "cancelled_tool",
         description: "observes cancellation",
@@ -627,7 +627,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     });
     const child = xsaf
       .agent(config(childAdapter, { name: "researcher", description: "research tasks" }))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "child_lookup",
         description: "looks up a value",
@@ -644,7 +644,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     });
     const parent = xsaf
       .agent(config(parentAdapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .delegate(child)
       .on("delegate.started", (event) => delegateEvents.push(event.type))
       .on("delegate.completed", (event) => delegateEvents.push(event.type))
@@ -659,7 +659,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
   test("serves tools through the Hono MCP backbone", async () => {
     const builder = xsaf
       .agent(config(mockModel()))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "echo_value",
         description: "echoes a numeric value",
@@ -781,7 +781,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     let closed = false;
     const builder = xsaf
       .agent(config(mockModel()))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .tool({
         name: "shared_tool",
         description: "local",
@@ -817,7 +817,7 @@ describe("delegation, MCP, schedules, and structured output", () => {
     }));
     const builder = xsaf
       .agent(config(adapter))
-      .sandbox(local())
+      .sandbox(local({ unsafe: true }))
       .mcp({
         name: "external",
         async connect() {

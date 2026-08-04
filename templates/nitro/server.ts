@@ -130,7 +130,7 @@ const weatherAdvisor = xsaf
     stream: true,
   })
   .approve(approve)
-  .sandbox(local())
+  .sandbox(local({ unsafe: true }))
   .tool({
     name: "get_weather",
     description: "Get the current mocked weather for a city.",
@@ -151,7 +151,7 @@ const agent = xsaf
     stream: true,
   })
   .approve(approve)
-  .sandbox(local())
+  .sandbox(local({ unsafe: true }))
   .memory(memory)
   .tool({
     name: "search_memory",

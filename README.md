@@ -115,7 +115,7 @@ XSAF does not silently execute model-selected tools on the host. Executable loca
 ```ts
 import local from "@xsaf/agent/sandbox/local";
 
-agent.sandbox(local()); // Explicit opt-in: no isolation.
+agent.sandbox(local({ unsafe: true })); // Explicit opt-in: no isolation.
 ```
 
 The bundled local adapter is intended for development and trusted code. Production isolation should use an AgentOS-compatible `XsafSandboxDriver` or another sandbox implementation. Untrusted MCP tools require human approval by default, and public approval events never expose tool arguments.
@@ -136,7 +136,7 @@ Read [Tools & Security](https://xsaf.ilha.build/recipes/tools) before enabling e
 
 ## Alpha status
 
-XSAF is currently `0.1.0-alpha.0`. The core is tested and usable, but APIs may change before a stable release. The alpha intentionally does not include a production sandbox implementation, durable scheduling, SQLite memory, platform-specific chat channels, authentication, rate limiting, or a socket listener.
+XSAF is currently `0.1.0-alpha.0`. The core is tested and usable, but APIs may change before a stable release. The alpha intentionally does not include a production sandbox implementation, durable/distributed scheduling, authentication, rate limiting, or a socket listener. Optional durable memory (`db0` / `unstorage`) and chat-sdk channels ship as subpath adapters.
 
 See the [Roadmap](https://xsaf.ilha.build/roadmap) for current boundaries and planned work.
 

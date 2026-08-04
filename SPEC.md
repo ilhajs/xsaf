@@ -55,8 +55,7 @@ JSON Schema is advertised to xsAI and MCP clients. Runtime arguments are validat
 Executable local, delegated, and MCP tools require an explicit sandbox. XSAF has no implicit host-execution fallback.
 
 - Production users should register an AgentOS-compatible `XsafSandboxDriver`.
-- `@xsaf/agent/sandbox/local` is an explicit no-isolation opt-in.
-- `@xsaf/agent/sandbox/local` remains a compatibility alias requiring an unsafe acknowledgement.
+- `@xsaf/agent/sandbox/local` is an explicit no-isolation opt-in and requires `{ unsafe: true }`.
 
 ## Approvals
 
@@ -82,10 +81,10 @@ Other custom channels are post-alpha adapters.
 
 ## Memory and concurrency
 
-The default memory driver is in-memory. Drivers may provide durable storage. Optional adapters:
+The default memory driver is in-memory. Drivers may provide durable storage. Optional peer-backed adapters:
 
-- `@xsaf/agent/memory/db0` wraps a [db0](https://db0.unjs.io/) `Database` (SQL rows + `.search()`).
-- `@xsaf/agent/memory/unstorage` wraps an [unstorage](https://unstorage.unjs.io/) `Storage` (KV backends).
+- `@xsaf/agent/memory/db0` wraps a [db0](https://db0.unjs.io/) `Database`. Messages are stored as SQL rows; `.search({ query, sessionId?, limit? })` runs a substring `LIKE` across sessions by default (optional `sessionId` narrows).
+- `@xsaf/agent/memory/unstorage` wraps an [unstorage](https://unstorage.unjs.io/) `Storage` for KV backends (filesystem, Redis, Cloudflare, and others).
 
 Requests sharing a `sessionId` are serialized; different sessions may run concurrently. Memory failures fail the request.
 

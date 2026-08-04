@@ -63,4 +63,4 @@ bun run build
 
 XSAF vendors the type-only Standard Schema V1 and Standard JSON Schema V1 contracts from [standardschema.dev](https://standardschema.dev/). Model-visible tool schemas must implement both validation and JSON Schema conversion.
 
-Executable tools always require an explicit sandbox. Use an AgentOS-compatible driver for isolation or deliberately opt out with `@xsaf/agent/sandbox/local`.
+Executable tools always require an explicit sandbox. Use an AgentOS-compatible driver for isolation or deliberately opt out with `@xsaf/agent/sandbox/local` via `local({ unsafe: true })`.

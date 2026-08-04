@@ -1,5 +1,7 @@
 # AGENTS.md — XSAF
 
+@SPEC.md
+
 ## Mission
 
 Build **XSAF (Extra Small Agent Framework)**: a minimal, fluent TypeScript orchestration layer over xsAI. It coordinates model calls, Standard Schema tools, driver-based channels/memory/MCP/scheduling, and explicitly configured sandbox execution. It is not a workflow engine.

@@ -19,6 +19,7 @@ XSAF `0.1.0-alpha.0` stabilizes the unified fluent agent, lifecycle, model integ
 - xsAI model adapter plus public deterministic mock adapter
 - Standard Schema V1 validation and Standard JSON Schema V1 tool publication
 - In-memory memory driver
+- Optional durable memory: `@xsaf/agent/memory/db0` (SQL + `.search()`) and `@xsaf/agent/memory/unstorage` (KV)
 - Mock and HTTP channels
 - Modern HTTP MCP client and server using protocol `2026-07-28`
 - Structural memory, channel, scheduler, sandbox, MCP, and serve drivers
@@ -29,7 +30,7 @@ Broader Deno and Workers support depends on the target runtime and all installed
 ## Security boundaries
 
 - No production isolation implementation is bundled.
-- `@xsaf/agent/sandbox/local` executes in the host process and provide no isolation.
+- `@xsaf/agent/sandbox/local` requires `{ unsafe: true }` and executes in the host process with no isolation.
 - Sandbox permission metadata is not enforcement by itself.
 - Tool timeouts and caller cancellation are cooperative.
 - HTTP routes do not include application authentication; compose it with Hono or deployment infrastructure.
@@ -51,14 +52,13 @@ Streaming preserves backpressure and saves output after consumption. A same-sess
 
 ## Non-durable components
 
-Default memory and cron scheduling are process-local. They do not provide persistence, distributed coordination, backfill, replay, or restart recovery.
+The default in-memory driver and cron scheduling are process-local. They do not provide persistence, distributed coordination, backfill, replay, or restart recovery. For durable session history, use `@xsaf/agent/memory/db0` or `@xsaf/agent/memory/unstorage` (optional peer dependencies).
 
 ## Planned work
 
 The following are intentionally outside the alpha package:
 
 - bundled AgentOS implementation
-- SQLite memory adapter
 - socket listeners and stdio MCP transport
 - distributed or durable scheduling
 - workflow replay and automatic compaction
@@ -69,7 +69,7 @@ The following are intentionally outside the alpha package:
 
 1. Provide an isolation driver suitable for the trust boundary.
 2. Add authentication and authorization around HTTP routes.
-3. Select durable memory and scheduling drivers when restart recovery matters.
+3. Wire durable memory (`db0` or `unstorage`) and a durable scheduler when restart recovery matters.
 4. Test stream cancellation and tool timeout behavior for every provider.
 5. Validate Node, Bun, Deno, or Workers compatibility in the actual deployment.
 6. Pin the alpha version and review changes before upgrading.
