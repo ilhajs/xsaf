@@ -72,6 +72,27 @@ bot.onAction([APPROVE_ACTION_ID, DENY_ACTION_ID], async (event) => {
   }
 });
 
+const handleApproval = async (
+  input: unknown,
+  context: { readonly tool: string; readonly sessionId: string },
+) => {
+  const thread = bot.thread(context.sessionId);
+  const options: ApprovalCardOptions = {
+    title: `Approve ${context.tool}?`,
+    fields: { Input: JSON.stringify(input) },
+  };
+
+  const message = await thread.post(
+    // We pass undefined as the webhookUrl so it triggers an onAction event instead
+    buildApprovalCard(options, undefined as any),
+  );
+
+  return new Promise<boolean>((resolve) => {
+    console.log("Setting pending approval for", message.id);
+    pendingApprovals.set(message.id, { resolve, options });
+  });
+};
+
 const weatherAdvisor = xsaf
   .agent({
     name: "weather_advisor",
@@ -80,6 +101,7 @@ const weatherAdvisor = xsaf
     persona: "Give one short, practical clothing suggestion based on the weather.",
     stream: true,
   })
+  .approve(handleApproval)
   .sandbox(local())
   .tool({
     name: "get_weather",
@@ -99,19 +121,7 @@ const agent = xsaf
     persona: "Be concise. Use get_weather for weather data and delegate clothing advice.",
     stream: true,
   })
-  .approve(async (input, context) => {
-    const thread = bot.thread(context.sessionId);
-    const options: ApprovalCardOptions = {
-      title: `Approve ${context.tool}?`,
-      fields: { Input: JSON.stringify(input) },
-    };
-
-    const message = await thread.post(buildApprovalCard(options, undefined as any));
-
-    return new Promise<boolean>((resolve) => {
-      pendingApprovals.set(message.id, { resolve, options });
-    });
-  })
+  .approve(handleApproval)
   .sandbox(local())
   .delegate(weatherAdvisor)
   .channel(http({ path: "/chat", apiKey: env.xsafChatKey }))
