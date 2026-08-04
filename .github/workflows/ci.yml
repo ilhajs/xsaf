@@ -48,11 +48,11 @@ jobs:
 
       - name: Smoke test with Bun
         working-directory: packages/xsaf
-        run: bun -e "import('./dist/index.mjs').then(m => { if (!m.xsaf) process.exit(1) })"
+        run: bun -e "import('./dist/index.mjs').then(m => { if (typeof m.agent !== 'function') process.exit(1) })"
 
       - name: Smoke test with Node
         working-directory: packages/xsaf
-        run: node --input-type=module -e "const m = await import('./dist/index.mjs'); if (!m.xsaf) process.exit(1)"
+        run: node --input-type=module -e "const m = await import('./dist/index.mjs'); if (typeof m.agent !== 'function') process.exit(1)"
 
       - name: Smoke test terminal UI with Bun
         working-directory: packages/cli
